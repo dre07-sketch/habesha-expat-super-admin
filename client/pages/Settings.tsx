@@ -1,0 +1,415 @@
+
+import React, { useState } from 'react';
+import { Save, AlertTriangle, Power, UserPlus, Lock, ShieldAlert, Shield, Ban, CheckCircle, Camera, Upload, Loader2 } from 'lucide-react';
+
+const MOCK_ADMINS = [
+  { id: 1, name: 'Admin User', email: 'admin@habesha.com', role: 'Super Admin', status: 'Active', lastActive: 'Now' },
+  { id: 2, name: 'Sarah Johnson', email: 'sarah.j@habesha.com', role: 'Admin', status: 'Active', lastActive: '2h ago' },
+  { id: 3, name: 'Mike Ross', email: 'mike.r@habesha.com', role: 'Moderator', status: 'Suspended', lastActive: '5d ago' },
+  { id: 4, name: 'David Miller', email: 'david.m@habesha.com', role: 'Admin', status: 'Active', lastActive: '1d ago' },
+];
+
+const Settings: React.FC = () => {
+  const [newAdmin, setNewAdmin] = useState({ name: '', email: '', password: '', image: '', role: 'Admin' });
+  const [admins, setAdmins] = useState(MOCK_ADMINS);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  
+  // Simulation of Kill Switch State
+  // Default: Public is ONLINE (true), Admin is ONLINE (true)
+  const [siteStatus, setSiteStatus] = useState({ public: true, admin: true });
+
+  const handleKillSwitch = (target: 'public' | 'admin') => {
+    const isOnline = siteStatus[target];
+    const action = isOnline ? 'SHUT DOWN' : 'RESTORE';
+    
+    // In a real app, this might require 2FA or a password confirmation
+    const confirm = window.confirm(`⚠️ CRITICAL ACTION ⚠️\n\nAre you sure you want to ${action} the ${target === 'public' ? 'Public Website' : 'Admin Panel'}?\n\nThis will affect all users immediately.`);
+    
+    if (confirm) {
+      setSiteStatus(prev => ({ ...prev, [target]: !prev[target] }));
+    }
+  };
+
+  const toggleAdminStatus = (id: number) => {
+    setAdmins(admins.map(admin => {
+        if (admin.id === id) {
+            return { ...admin, status: admin.status === 'Active' ? 'Suspended' : 'Active' };
+        }
+        return admin;
+    }));
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setNewAdmin({ ...newAdmin, image: event.target.result as string });
+        }
+      };
+      reader.readAsDataURL(e.target.files[0]);
+    }
+  };
+
+  const handleUpdateCredentials = () => {
+    setIsUpdating(true);
+    // Simulate network request
+    setTimeout(() => {
+        setIsUpdating(false);
+        alert('Credentials updated successfully.');
+    }, 1500);
+  };
+
+  const handleRegisterAdmin = () => {
+    if (!newAdmin.name || !newAdmin.email || !newAdmin.password) return;
+    setIsRegistering(true);
+    // Simulate network request
+    setTimeout(() => {
+        setIsRegistering(false);
+        setAdmins([...admins, { 
+            id: admins.length + 1, 
+            name: newAdmin.name, 
+            email: newAdmin.email, 
+            role: newAdmin.role, 
+            status: 'Active', 
+            lastActive: 'Just now' 
+        }]);
+        setNewAdmin({ name: '', email: '', password: '', image: '', role: 'Admin' });
+        alert(`${newAdmin.role} account created for ${newAdmin.name}.`);
+    }, 2000);
+  };
+
+  return (
+    <div className="space-y-8 animate-fade-in pb-10">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-800 dark:text-white">System Settings</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage credentials, access control, and emergency protocols.</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Profile Settings */}
+        <div className="glass-panel p-6 rounded-2xl space-y-6 border border-white/60 dark:border-white/5">
+            <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 pb-4 border-b border-slate-100 dark:border-white/5">
+                <Lock size={20} className="text-blue-500" />
+                Super Admin Credentials
+            </h2>
+            <div className="space-y-4">
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">Email Address</label>
+                    <input type="email" defaultValue="admin@habesha.com" className="glass-input w-full px-4 py-3 rounded-xl text-sm text-slate-800 dark:text-white" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">Current Password</label>
+                        <input type="password" placeholder="••••••••" className="glass-input w-full px-4 py-3 rounded-xl text-sm text-slate-800 dark:text-white" />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">New Password</label>
+                        <input type="password" placeholder="New password" className="glass-input w-full px-4 py-3 rounded-xl text-sm text-slate-800 dark:text-white" />
+                    </div>
+                </div>
+                <button 
+                    onClick={handleUpdateCredentials}
+                    disabled={isUpdating}
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transform hover:scale-[1.01] disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                    {isUpdating ? (
+                        <>
+                            <Loader2 size={18} className="animate-spin" /> Updating...
+                        </>
+                    ) : (
+                        <>
+                            <Save size={18} /> Update Credentials
+                        </>
+                    )}
+                </button>
+            </div>
+        </div>
+
+        {/* Create New Admin */}
+        <div className="glass-panel p-6 rounded-2xl space-y-6 border border-white/60 dark:border-white/5">
+            <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 pb-4 border-b border-slate-100 dark:border-white/5">
+                <UserPlus size={20} className="text-emerald-500" />
+                Register New Admin
+            </h2>
+
+            {/* Added Image Upload Section */}
+            <div className="flex items-center gap-5">
+                <div className="relative group">
+                    <div className="w-20 h-20 rounded-2xl bg-slate-50 dark:bg-white/5 border-2 border-dashed border-slate-300 dark:border-white/20 flex items-center justify-center overflow-hidden hover:border-emerald-500 dark:hover:border-emerald-500 transition-colors">
+                        {newAdmin.image ? (
+                            <img src={newAdmin.image} alt="Admin Preview" className="w-full h-full object-cover" />
+                        ) : (
+                            <div className="text-center p-2">
+                                <Camera size={20} className="text-slate-400 mx-auto mb-1" />
+                            </div>
+                        )}
+                    </div>
+                     <label className="absolute -bottom-2 -right-2 p-2 bg-emerald-500 rounded-xl text-white shadow-lg cursor-pointer hover:bg-emerald-400 transition-colors border-2 border-white dark:border-slate-900">
+                         <Upload size={12} />
+                         <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+                     </label>
+                </div>
+                <div className="flex-1">
+                    <h3 className="text-sm font-bold text-slate-800 dark:text-white">Profile Picture</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Upload a photo for the admin profile. <br/>Supported formats: JPG, PNG.
+                    </p>
+                </div>
+            </div>
+
+            <div className="space-y-4">
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">Full Name</label>
+                    <input 
+                        type="text" 
+                        className="glass-input w-full px-4 py-3 rounded-xl text-sm text-slate-800 dark:text-white" 
+                        value={newAdmin.name}
+                        onChange={e => setNewAdmin({...newAdmin, name: e.target.value})}
+                        placeholder="e.g., Abebe Bikila"
+                    />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">Email Address</label>
+                        <input 
+                            type="email" 
+                            className="glass-input w-full px-4 py-3 rounded-xl text-sm text-slate-800 dark:text-white" 
+                            value={newAdmin.email}
+                            onChange={e => setNewAdmin({...newAdmin, email: e.target.value})}
+                            placeholder="admin@example.com"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">Role</label>
+                        <select
+                             className="glass-input w-full px-4 py-3 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:border-blue-500 appearance-none" 
+                             value={newAdmin.role}
+                             onChange={e => setNewAdmin({...newAdmin, role: e.target.value})}
+                        >
+                            <option value="Admin">Admin</option>
+                            <option value="Moderator">Moderator</option>
+                            <option value="Editor">Editor</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">Temp Password</label>
+                    <input 
+                        type="password" 
+                        className="glass-input w-full px-4 py-3 rounded-xl text-sm text-slate-800 dark:text-white" 
+                        value={newAdmin.password}
+                        onChange={e => setNewAdmin({...newAdmin, password: e.target.value})}
+                        placeholder="••••••••"
+                    />
+                </div>
+                <button 
+                    onClick={handleRegisterAdmin}
+                    disabled={isRegistering}
+                    className="w-full bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 text-slate-700 dark:text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all hover:border-emerald-200 dark:hover:border-emerald-500/30 hover:text-emerald-600 dark:hover:text-emerald-400 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                     {isRegistering ? (
+                        <>
+                            <Loader2 size={18} className="animate-spin" /> Creating Account...
+                        </>
+                    ) : (
+                        <>
+                            <UserPlus size={18} /> Create Admin Account
+                        </>
+                    )}
+                </button>
+            </div>
+        </div>
+      </div>
+
+      {/* EMERGENCY SHUTDOWN ZONE */}
+      <div className="relative rounded-3xl overflow-hidden group border border-red-500/20 shadow-2xl shadow-red-900/20">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 bg-slate-900 dark:bg-black">
+             <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'repeating-linear-gradient(45deg, #ef4444 0, #ef4444 10px, transparent 10px, transparent 20px)' }}></div>
+             <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/95 to-slate-900/90"></div>
+          </div>
+
+          <div className="relative p-8">
+              <div className="flex items-center gap-4 mb-8">
+                  <div className="p-3 bg-red-500/20 rounded-xl border border-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.3)] animate-pulse">
+                      <AlertTriangle className="text-red-500" size={32} />
+                  </div>
+                  <div>
+                      <h2 className="text-2xl font-bold text-white tracking-tight">Emergency Shutdown Zone</h2>
+                      <p className="text-red-200/70 text-sm mt-1">Restricted Area. Actions here have immediate global impact.</p>
+                  </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  
+                  {/* Public Site Control */}
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm flex items-center justify-between hover:bg-white/10 transition-all group/card">
+                      <div>
+                          <div className="flex items-center gap-2 mb-2">
+                             <GlobeIcon active={siteStatus.public} />
+                             <h3 className="text-lg font-bold text-white">Public Website</h3>
+                          </div>
+                          <p className="text-sm text-slate-400 max-w-[200px]">Controls visibility of www.habeshaexpat.com</p>
+                          <div className={`mt-4 text-xs font-mono font-bold py-1 px-3 rounded-lg inline-flex items-center gap-2 border ${siteStatus.public ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
+                              <span className={`w-2 h-2 rounded-full ${siteStatus.public ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></span>
+                              {siteStatus.public ? 'SYSTEM ONLINE' : 'SYSTEM OFFLINE'}
+                          </div>
+                      </div>
+                      
+                      <button 
+                        onClick={() => handleKillSwitch('public')}
+                        className={`relative w-24 h-12 rounded-full p-1 transition-all duration-500 ease-in-out shadow-inner cursor-pointer ${
+                            siteStatus.public 
+                            ? 'bg-slate-800 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)] border border-slate-600' 
+                            : 'bg-slate-900 shadow-[inset_0_2px_4px_rgba(0,0,0,0.9)] border border-red-900/50'
+                        }`}
+                      >
+                          <div className={`absolute inset-0 rounded-full transition-opacity duration-500 ${siteStatus.public ? 'opacity-0' : 'opacity-100 shadow-[0_0_20px_rgba(239,68,68,0.4)]'}`}></div>
+                          
+                          {/* The Sliding Knob */}
+                          <div className={`w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all duration-500 transform ${
+                              siteStatus.public 
+                              ? 'translate-x-12 bg-gradient-to-br from-emerald-400 to-emerald-600 border border-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.6)]' 
+                              : 'translate-x-0 bg-gradient-to-br from-red-500 to-red-700 border border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.6)]'
+                          }`}>
+                              <Power size={18} className="text-white drop-shadow-md" />
+                          </div>
+                      </button>
+                  </div>
+
+                  {/* Admin Panel Control */}
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm flex items-center justify-between hover:bg-white/10 transition-all group/card">
+                      <div>
+                          <div className="flex items-center gap-2 mb-2">
+                             <ShieldAlert className={siteStatus.admin ? "text-emerald-500" : "text-red-500"} size={20} />
+                             <h3 className="text-lg font-bold text-white">Admin Panel</h3>
+                          </div>
+                          <p className="text-sm text-slate-400 max-w-[200px]">Controls access to admin.habeshaexpat.com</p>
+                          <div className={`mt-4 text-xs font-mono font-bold py-1 px-3 rounded-lg inline-flex items-center gap-2 border ${siteStatus.admin ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
+                              <span className={`w-2 h-2 rounded-full ${siteStatus.admin ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></span>
+                              {siteStatus.admin ? 'SYSTEM ONLINE' : 'SYSTEM OFFLINE'}
+                          </div>
+                      </div>
+                      
+                       <button 
+                        onClick={() => handleKillSwitch('admin')}
+                        className={`relative w-24 h-12 rounded-full p-1 transition-all duration-500 ease-in-out shadow-inner cursor-pointer ${
+                            siteStatus.admin 
+                            ? 'bg-slate-800 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)] border border-slate-600' 
+                            : 'bg-slate-900 shadow-[inset_0_2px_4px_rgba(0,0,0,0.9)] border border-red-900/50'
+                        }`}
+                      >
+                          <div className={`absolute inset-0 rounded-full transition-opacity duration-500 ${siteStatus.admin ? 'opacity-0' : 'opacity-100 shadow-[0_0_20px_rgba(239,68,68,0.4)]'}`}></div>
+                          
+                          {/* The Sliding Knob */}
+                          <div className={`w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all duration-500 transform ${
+                              siteStatus.admin 
+                              ? 'translate-x-12 bg-gradient-to-br from-emerald-400 to-emerald-600 border border-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.6)]' 
+                              : 'translate-x-0 bg-gradient-to-br from-red-500 to-red-700 border border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.6)]'
+                          }`}>
+                              <Power size={18} className="text-white drop-shadow-md" />
+                          </div>
+                      </button>
+                  </div>
+
+              </div>
+          </div>
+      </div>
+
+      {/* ADMIN ACCESS CONTROL LIST */}
+      <div className="relative rounded-3xl overflow-hidden border border-white/60 dark:border-white/5 bg-white/40 dark:bg-slate-900/50 backdrop-blur-xl shadow-xl">
+        <div className="p-8">
+            <div className="flex items-center justify-between mb-8">
+                <div>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-white">Admin Privileges</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage active administrators and system moderators.</p>
+                </div>
+                <div className="p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/20 shadow-sm">
+                     <Shield className="text-indigo-500" size={24} />
+                </div>
+            </div>
+
+            <div className="space-y-4">
+                 {admins.map((admin) => (
+                     <div key={admin.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-2xl bg-white/50 dark:bg-black/20 border border-slate-100 dark:border-white/5 hover:border-indigo-500/30 transition-all group">
+                         <div className="flex items-center gap-4">
+                             <div className="relative">
+                                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                                     {admin.name.charAt(0)}
+                                 </div>
+                                 <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-slate-800 ${admin.status === 'Active' ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
+                             </div>
+                             <div>
+                                 <h3 className="font-bold text-slate-800 dark:text-white">{admin.name}</h3>
+                                 <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                     <span>{admin.email}</span>
+                                     <span className="w-1 h-1 rounded-full bg-slate-400"></span>
+                                     <span className={`${admin.role === 'Super Admin' ? 'text-amber-500 font-bold' : 'text-indigo-500'}`}>{admin.role}</span>
+                                 </div>
+                             </div>
+                         </div>
+                         
+                         <div className="flex items-center gap-6 mt-4 md:mt-0">
+                              <div className="text-right hidden sm:block">
+                                 <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Last Active</p>
+                                 <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{admin.lastActive}</p>
+                              </div>
+
+                              <div className="h-10 w-px bg-slate-200 dark:bg-white/10 mx-2 hidden sm:block"></div>
+
+                              {admin.role !== 'Super Admin' ? (
+                                  <button 
+                                     onClick={() => toggleAdminStatus(admin.id)}
+                                     className={`min-w-[140px] px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm ${
+                                         admin.status === 'Active' 
+                                         ? 'bg-white dark:bg-white/5 text-red-500 border border-slate-200 dark:border-white/10 hover:bg-red-50 dark:hover:bg-red-500/20 hover:border-red-200 dark:hover:border-red-500/30' 
+                                         : 'bg-emerald-500 text-white border border-emerald-600 hover:bg-emerald-400 shadow-lg shadow-emerald-500/20'
+                                     }`}
+                                  >
+                                     {admin.status === 'Active' ? (
+                                         <> <Ban size={16} /> SUSPEND ACCESS </>
+                                     ) : (
+                                         <> <CheckCircle size={16} /> ACTIVATE </>
+                                     )}
+                                  </button>
+                              ) : (
+                                  <div className="min-w-[140px] px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-white/5 text-slate-400 border border-slate-200 dark:border-white/5 cursor-not-allowed flex items-center justify-center gap-2">
+                                      <Lock size={14} /> PROTECTED
+                                  </div>
+                              )}
+                         </div>
+                     </div>
+                 ))}
+            </div>
+            
+            {/* Decorative blurred blobs for the cool factor */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none -mr-10 -mt-10"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl pointer-events-none -ml-10 -mb-10"></div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Helper Component for Globe Icon color state
+const GlobeIcon = ({ active }: { active: boolean }) => (
+    <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        width="20" height="20" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        className={active ? "text-emerald-500" : "text-red-500"}
+    >
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="2" y1="12" x2="22" y2="12"></line>
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"></path>
+    </svg>
+);
+
+export default Settings;
