@@ -1,28 +1,39 @@
 
 const express = require('express');
 const router = express.Router();
-const pool = require('../connection/db');
+const { query } = require('../connection/db');
 
 // List Jobs
-router.get('/', async (req, res) => {
+router.get('/jobs-get', async (req, res) => {
     try {
-        // Fetch jobs with applicant count
-        const query = `
-            SELECT j.*, COUNT(ja.id) as applicants_count 
-            FROM jobs j 
-            LEFT JOIN job_applicants ja ON j.id = ja.job_id 
-            GROUP BY j.id 
-            ORDER BY j.posted_date DESC
-        `;
-        const result = await pool.query(query);
-        res.json(result.rows);
+        const sql = `
+      SELECT 
+        id,
+        title,
+        company,
+        location,
+        type,
+        salary,
+        industry,
+        description,
+        responsibilities,
+        requirements,
+        benefits,
+        status,
+        posted_date AS "postedDate",
+        url
+      FROM jobs
+      ORDER BY posted_date DESC
+    `;
+
+        const { rows } = await query(sql);
+
+        res.status(200).json(rows);
     } catch (err) {
+        console.error('❌ Error fetching jobs:', err);
         res.status(500).json({ error: err.message });
     }
 });
-
-
-
 
 
 
@@ -31,7 +42,7 @@ router.put('/:id/status', async (req, res) => {
     try {
         const { id } = req.params;
         // Simple toggle logic usually handled by UI sending exact status, but here we toggle in DB
-        const result = await pool.query(`
+        const result = await query(`
             UPDATE jobs 
             SET status = CASE WHEN status = 'visible' THEN 'hidden' ELSE 'visible' END 
             WHERE id = $1 RETURNING status
@@ -45,7 +56,7 @@ router.put('/:id/status', async (req, res) => {
 // Delete Job
 router.delete('/job-delete/:id', async (req, res) => {
     try {
-        await pool.query('DELETE FROM jobs WHERE id = $1', [req.params.id]);
+        await query('DELETE FROM jobs WHERE id = $1', [req.params.id]);
         res.json({ message: 'Job deleted' });
     } catch (err) {
         res.status(500).json({ error: err.message });

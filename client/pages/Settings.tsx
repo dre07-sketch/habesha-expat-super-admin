@@ -1,90 +1,239 @@
+import React, { useState, useEffect } from 'react';
+import { Save, AlertTriangle, Power, UserPlus, Lock, Shield, Ban, CheckCircle, Camera, Upload, Loader2, RefreshCw } from 'lucide-react';
 
-import React, { useState } from 'react';
-import { Save, AlertTriangle, Power, UserPlus, Lock, ShieldAlert, Shield, Ban, CheckCircle, Camera, Upload, Loader2 } from 'lucide-react';
+// --- Types based on your DB Schema ---
+interface AdminUser {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  status: string; // 'active' | 'suspended'
+  avatar_url?: string;
+  last_active?: string; // Mapped from created_at in your query
+}
 
-const MOCK_ADMINS = [
-  { id: 1, name: 'Admin User', email: 'admin@habesha.com', role: 'Super Admin', status: 'Active', lastActive: 'Now' },
-  { id: 2, name: 'Sarah Johnson', email: 'sarah.j@habesha.com', role: 'Admin', status: 'Active', lastActive: '2h ago' },
-  { id: 3, name: 'Mike Ross', email: 'mike.r@habesha.com', role: 'Moderator', status: 'Suspended', lastActive: '5d ago' },
-  { id: 4, name: 'David Miller', email: 'david.m@habesha.com', role: 'Admin', status: 'Active', lastActive: '1d ago' },
-];
+interface SystemStatus {
+  id: number;
+  service_name: string;
+  status: string; // 'activated' | 'deactivated'
+  maintenance_message: string;
+  updated_at: string;
+}
+
+// --- Configuration ---
+const API_BASE_URL = 'http://localhost:5000/api/settings'; // Adjust port/path as needed
 
 const Settings: React.FC = () => {
-  const [newAdmin, setNewAdmin] = useState({ name: '', email: '', password: '', image: '', role: 'Admin' });
-  const [admins, setAdmins] = useState(MOCK_ADMINS);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [isRegistering, setIsRegistering] = useState(false);
-  
-  // Simulation of Kill Switch State
-  // Default: Public is ONLINE (true), Admin is ONLINE (true)
-  const [siteStatus, setSiteStatus] = useState({ public: true, admin: true });
+  // Form State
+  const [newAdmin, setNewAdmin] = useState({ name: '', email: '', password: '', role: 'Admin' });
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
 
-  const handleKillSwitch = (target: 'public' | 'admin') => {
-    const isOnline = siteStatus[target];
-    const action = isOnline ? 'SHUT DOWN' : 'RESTORE';
-    
-    // In a real app, this might require 2FA or a password confirmation
-    const confirm = window.confirm(`⚠️ CRITICAL ACTION ⚠️\n\nAre you sure you want to ${action} the ${target === 'public' ? 'Public Website' : 'Admin Panel'}?\n\nThis will affect all users immediately.`);
-    
-    if (confirm) {
-      setSiteStatus(prev => ({ ...prev, [target]: !prev[target] }));
+  // Data State
+  const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [siteStatus, setSiteStatus] = useState({ public: true, admin: true });
+  
+  // Loading States
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isUpdatingCreds, setIsUpdatingCreds] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [isTogglingStatus, setIsTogglingStatus] = useState<number | null>(null);
+
+  // --- 1. Fetch Initial Data ---
+  const fetchData = async () => {
+    try {
+      // Fetch Admins
+      const adminsRes = await fetch(`${API_BASE_URL}/admins-get`);
+      const adminsData = await adminsRes.json();
+      setAdmins(adminsData);
+
+      // Fetch System Status
+      const statusRes = await fetch(`${API_BASE_URL}/system-status`);
+      const statusData: SystemStatus[] = await statusRes.json();
+      
+      // Map DB 'activated'/'deactivated' to boolean
+      const publicSite = statusData.find(s => s.service_name === 'Public Website');
+      const adminPanel = statusData.find(s => s.service_name === 'Admin Panel');
+
+      setSiteStatus({
+        public: publicSite?.status === 'activated',
+        admin: adminPanel?.status === 'activated'
+      });
+
+      setIsLoadingData(false);
+    } catch (error) {
+      console.error("Failed to fetch settings data:", error);
+      alert("Error loading system data. Check console.");
+      setIsLoadingData(false);
     }
   };
 
-  const toggleAdminStatus = (id: number) => {
-    setAdmins(admins.map(admin => {
-        if (admin.id === id) {
-            return { ...admin, status: admin.status === 'Active' ? 'Suspended' : 'Active' };
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // --- 2. System Kill Switch Logic ---
+  const handleKillSwitch = async (target: 'public' | 'admin') => {
+    const isOnline = siteStatus[target];
+    const action = isOnline ? 'SHUT DOWN' : 'RESTORE';
+    const dbStatus = isOnline ? 'deactivated' : 'activated'; // Value for DB
+    const endpoint = target === 'public' ? '/system-status/website' : '/system-status/admin';
+    
+    
+    if (confirm) {
+      try {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: dbStatus })
+        });
+
+        if (response.ok) {
+            setSiteStatus(prev => ({ ...prev, [target]: !prev[target] }));
+        } else {
+            alert("Failed to update system status.");
         }
-        return admin;
-    }));
+      } catch (err) {
+          console.error(err);
+          alert("Network error.");
+      }
+    }
   };
 
+  // --- 3. Toggle Admin Status Logic ---
+  const toggleAdminStatus = async (admin: AdminUser) => {
+    const newStatus = admin.status === 'active' ? 'suspended' : 'active';
+    setIsTogglingStatus(admin.id);
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/admins/${admin.id}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+        });
+
+        if (response.ok) {
+            setAdmins(admins.map(a => a.id === admin.id ? { ...a, status: newStatus } : a));
+        } else {
+            alert("Failed to update status");
+        }
+    } catch (err) {
+        console.error(err);
+    } finally {
+        setIsTogglingStatus(null);
+    }
+  };
+
+  // --- 4. Image Handling ---
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedImage(file);
+      
+      // Create local preview
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) {
-          setNewAdmin({ ...newAdmin, image: event.target.result as string });
+          setImagePreview(event.target.result as string);
         }
       };
-      reader.readAsDataURL(e.target.files[0]);
+      reader.readAsDataURL(file);
     }
   };
 
-  const handleUpdateCredentials = () => {
-    setIsUpdating(true);
-    // Simulate network request
-    setTimeout(() => {
-        setIsUpdating(false);
-        alert('Credentials updated successfully.');
-    }, 1500);
+  // --- 5. Register Admin Logic ---
+  const handleRegisterAdmin = async () => {
+    if (!newAdmin.name || !newAdmin.email || !newAdmin.password) {
+        alert("Please fill in all fields");
+        return;
+    }
+    
+    setIsRegistering(true);
+
+    try {
+        let avatarUrl = '';
+
+        // A. Upload Image first (assuming you have an endpoint for the multer config)
+        if (selectedImage) {
+            const formData = new FormData();
+            formData.append('image', selectedImage); // Field name must match multer
+            
+            // Note: You didn't provide the exact route for upload, assuming '/upload'
+            const uploadRes = await fetch(`${API_BASE_URL}/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (uploadRes.ok) {
+                const data = await uploadRes.json();
+                avatarUrl = data.path || data.url; // Adjust based on your upload response
+            }
+        }
+
+        // B. Create Admin Record
+        const response = await fetch(`${API_BASE_URL}/admins-create`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ...newAdmin,
+                avatar_url: avatarUrl
+            })
+        });
+
+        if (response.ok) {
+            const createdAdmin = await response.json();
+            // Add new admin to list with mapped fields
+            setAdmins([...admins, { 
+                ...createdAdmin, 
+                status: 'active', 
+                last_active: new Date().toISOString() 
+            }]);
+            
+            // Reset Form
+            setNewAdmin({ name: '', email: '', password: '', role: 'Admin' });
+            setSelectedImage(null);
+            setImagePreview('');
+           
+        } else {
+            const err = await response.json();
+            alert(`Error: ${err.error || 'Failed to create admin'}`);
+        }
+
+    } catch (err) {
+        console.error(err);
+        alert("Network error occurred.");
+    } finally {
+        setIsRegistering(false);
+    }
   };
 
-  const handleRegisterAdmin = () => {
-    if (!newAdmin.name || !newAdmin.email || !newAdmin.password) return;
-    setIsRegistering(true);
-    // Simulate network request
+  // Mock Credential Update (Endpoint not provided in prompt)
+  const handleUpdateCredentials = () => {
+    setIsUpdatingCreds(true);
     setTimeout(() => {
-        setIsRegistering(false);
-        setAdmins([...admins, { 
-            id: admins.length + 1, 
-            name: newAdmin.name, 
-            email: newAdmin.email, 
-            role: newAdmin.role, 
-            status: 'Active', 
-            lastActive: 'Just now' 
-        }]);
-        setNewAdmin({ name: '', email: '', password: '', image: '', role: 'Admin' });
-        alert(`${newAdmin.role} account created for ${newAdmin.name}.`);
-    }, 2000);
+        setIsUpdatingCreds(false);
+        alert('Credentials functionality requires a /change-password endpoint.');
+    }, 1000);
   };
+
+  if (isLoadingData) {
+      return (
+          <div className="flex items-center justify-center h-64 text-slate-500">
+              <Loader2 className="animate-spin mr-2" /> Loading System Settings...
+          </div>
+      )
+  }
 
   return (
     <div className="space-y-8 animate-fade-in pb-10">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800 dark:text-white">System Settings</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage credentials, access control, and emergency protocols.</p>
+      <div className="flex justify-between items-center">
+        <div>
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">System Settings</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage credentials, access control, and emergency protocols.</p>
+        </div>
+        <button onClick={fetchData} className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors" title="Refresh Data">
+            <RefreshCw size={20} className="text-slate-500" />
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -111,10 +260,10 @@ const Settings: React.FC = () => {
                 </div>
                 <button 
                     onClick={handleUpdateCredentials}
-                    disabled={isUpdating}
+                    disabled={isUpdatingCreds}
                     className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transform hover:scale-[1.01] disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                    {isUpdating ? (
+                    {isUpdatingCreds ? (
                         <>
                             <Loader2 size={18} className="animate-spin" /> Updating...
                         </>
@@ -134,12 +283,12 @@ const Settings: React.FC = () => {
                 Register New Admin
             </h2>
 
-            {/* Added Image Upload Section */}
+            {/* Image Upload Section */}
             <div className="flex items-center gap-5">
                 <div className="relative group">
                     <div className="w-20 h-20 rounded-2xl bg-slate-50 dark:bg-white/5 border-2 border-dashed border-slate-300 dark:border-white/20 flex items-center justify-center overflow-hidden hover:border-emerald-500 dark:hover:border-emerald-500 transition-colors">
-                        {newAdmin.image ? (
-                            <img src={newAdmin.image} alt="Admin Preview" className="w-full h-full object-cover" />
+                        {imagePreview ? (
+                            <img src={imagePreview} alt="Admin Preview" className="w-full h-full object-cover" />
                         ) : (
                             <div className="text-center p-2">
                                 <Camera size={20} className="text-slate-400 mx-auto mb-1" />
@@ -283,7 +432,7 @@ const Settings: React.FC = () => {
                   <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm flex items-center justify-between hover:bg-white/10 transition-all group/card">
                       <div>
                           <div className="flex items-center gap-2 mb-2">
-                             <ShieldAlert className={siteStatus.admin ? "text-emerald-500" : "text-red-500"} size={20} />
+                             <ShieldAlert active={siteStatus.admin} />
                              <h3 className="text-lg font-bold text-white">Admin Panel</h3>
                           </div>
                           <p className="text-sm text-slate-400 max-w-[200px]">Controls access to admin.habeshaexpat.com</p>
@@ -332,43 +481,55 @@ const Settings: React.FC = () => {
             </div>
 
             <div className="space-y-4">
+                 {admins.length === 0 && (
+                     <div className="text-center py-8 text-slate-400">No administrators found.</div>
+                 )}
                  {admins.map((admin) => (
                      <div key={admin.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-2xl bg-white/50 dark:bg-black/20 border border-slate-100 dark:border-white/5 hover:border-indigo-500/30 transition-all group">
                          <div className="flex items-center gap-4">
                              <div className="relative">
-                                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                                     {admin.name.charAt(0)}
-                                 </div>
-                                 <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-slate-800 ${admin.status === 'Active' ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
+                                 {admin.avatar_url ? (
+                                    <img src={admin.avatar_url} alt={admin.name} className="w-12 h-12 rounded-full object-cover shadow-lg" />
+                                 ) : (
+                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                                        {admin.name.charAt(0)}
+                                    </div>
+                                 )}
+                                 <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-slate-800 ${admin.status === 'active' ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
                              </div>
                              <div>
                                  <h3 className="font-bold text-slate-800 dark:text-white">{admin.name}</h3>
                                  <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                                      <span>{admin.email}</span>
                                      <span className="w-1 h-1 rounded-full bg-slate-400"></span>
-                                     <span className={`${admin.role === 'Super Admin' ? 'text-amber-500 font-bold' : 'text-indigo-500'}`}>{admin.role}</span>
+                                     <span className={`${admin.role === 'SuperAdmin' ? 'text-amber-500 font-bold' : 'text-indigo-500'}`}>{admin.role}</span>
                                  </div>
                              </div>
                          </div>
                          
                          <div className="flex items-center gap-6 mt-4 md:mt-0">
                               <div className="text-right hidden sm:block">
-                                 <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Last Active</p>
-                                 <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{admin.lastActive}</p>
+                                 <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Created At</p>
+                                 <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                     {admin.last_active ? new Date(admin.last_active).toLocaleDateString() : 'N/A'}
+                                 </p>
                               </div>
 
                               <div className="h-10 w-px bg-slate-200 dark:bg-white/10 mx-2 hidden sm:block"></div>
 
-                              {admin.role !== 'Super Admin' ? (
+                              {admin.role !== 'SuperAdmin' ? (
                                   <button 
-                                     onClick={() => toggleAdminStatus(admin.id)}
-                                     className={`min-w-[140px] px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm ${
-                                         admin.status === 'Active' 
+                                     onClick={() => toggleAdminStatus(admin)}
+                                     disabled={isTogglingStatus === admin.id}
+                                     className={`min-w-[140px] px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm disabled:opacity-50 ${
+                                         admin.status === 'active' 
                                          ? 'bg-white dark:bg-white/5 text-red-500 border border-slate-200 dark:border-white/10 hover:bg-red-50 dark:hover:bg-red-500/20 hover:border-red-200 dark:hover:border-red-500/30' 
                                          : 'bg-emerald-500 text-white border border-emerald-600 hover:bg-emerald-400 shadow-lg shadow-emerald-500/20'
                                      }`}
                                   >
-                                     {admin.status === 'Active' ? (
+                                     {isTogglingStatus === admin.id ? (
+                                        <Loader2 size={16} className="animate-spin" /> 
+                                     ) : admin.status === 'active' ? (
                                          <> <Ban size={16} /> SUSPEND ACCESS </>
                                      ) : (
                                          <> <CheckCircle size={16} /> ACTIVATE </>
@@ -384,7 +545,7 @@ const Settings: React.FC = () => {
                  ))}
             </div>
             
-            {/* Decorative blurred blobs for the cool factor */}
+            {/* Decorative blurred blobs */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none -mr-10 -mt-10"></div>
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl pointer-events-none -ml-10 -mb-10"></div>
         </div>
@@ -393,7 +554,7 @@ const Settings: React.FC = () => {
   );
 };
 
-// Helper Component for Globe Icon color state
+// Helper Components
 const GlobeIcon = ({ active }: { active: boolean }) => (
     <svg 
         xmlns="http://www.w3.org/2000/svg" 
@@ -409,6 +570,25 @@ const GlobeIcon = ({ active }: { active: boolean }) => (
         <circle cx="12" cy="12" r="10"></circle>
         <line x1="2" y1="12" x2="22" y2="12"></line>
         <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"></path>
+    </svg>
+);
+
+const ShieldAlert = ({ active }: { active: boolean }) => (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={active ? "text-emerald-500" : "text-red-500"}
+    >
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
     </svg>
 );
 

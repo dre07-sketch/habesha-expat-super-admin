@@ -8,11 +8,42 @@ export enum UserRole {
   SUPER_ADMIN = 'Super Admin'
 }
 
+export interface Like {
+  id: string | number;
+  user_name: string;
+  created_at: string;
+}
+
+export interface Comment {
+  id: string | number;
+  user_name: string;
+  content: string;
+  created_at: string;
+}
+
+export interface Article {
+  id: number;
+  title: string;
+  slug: string;
+  image: string;
+  excerpt: string;
+  content: string;
+  category: string;
+  author: string;
+  publishDate: string;
+  status: 'draft' | 'published';
+  likes?: number;
+  comments?: number;
+  views?: number;
+  likedBy?: Like[];
+  commentList?: Comment[];
+}
 export enum ContentType {
   VIDEO = 'Video',
   PODCAST = 'Podcast',
-  BUSINESS = 'Business Listing',
-  ARTICLE = 'Article'
+  BUSINESS = 'Business',
+  ARTICLE = 'Article',
+  REVIEW = 'Review'
 }
 
 export enum Status {
@@ -32,7 +63,7 @@ export interface User {
 }
 
 export interface ContentItem {
-  id: string;
+  id: string | number;
   title: string;
   type: ContentType;
   author: string;
@@ -41,13 +72,21 @@ export interface ContentItem {
   date: string;
   description: string;
   thumbnailUrl?: string;
-  mediaUrl?: string; // Added for playable content
+  thumbnail_url?: string;
+  mediaUrl?: string;
+  media_url?: string;
   likes?: number;
   comments?: number;
   // Business specific
   rating?: number;
+  comment?: string;
   reviewCount?: number;
   location?: string;
+  category?: string;
+  phone?: string;
+  address?: string;
+  map_pin?: string;
+  website_url?: string;
   details?: Record<string, any>;
 }
 
