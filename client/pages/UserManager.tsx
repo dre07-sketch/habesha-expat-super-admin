@@ -64,13 +64,13 @@ const UserManager: React.FC = () => {
       const data = await response.json();
 
       if (response.ok) {
-        alert(`Emails queued successfully for ${data.recipientCount} recipients.`);
+        
         setIsEmailModalOpen(false);
         setEmailSubject('');
         setEmailMessage('');
         setEmailAudience('all');
       } else {
-        alert(`Failed to send emails: ${data.message || 'Unknown error'}`);
+        
       }
     } catch (err) {
       console.error(err);
