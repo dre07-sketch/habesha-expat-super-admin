@@ -13,12 +13,19 @@ const adNewsRouter = require('./router/ad&news');
 const usersRouter = require('./router/users');
 const settingRouter = require('./router/setting');
 const contentRouter = require('./router/content');
+const dashboardRouter = require('./router/Dashboard');
+const LoginRouter = require('./auth/login');
+const forgotPasswordRouter = require('./auth/forgetpass');
 
 const app = express();  
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+//---------auth----------
+app.use('/api/login', LoginRouter);
+app.use('/api/forget-password', forgotPasswordRouter);
 
 //--------apis----------
 app.use('/api/articles', articleRouter);
@@ -28,6 +35,8 @@ app.use('/api/ad-news', adNewsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/settings', settingRouter);
 app.use('/api/contents', contentRouter)
+app.use('/api/dashboard', dashboardRouter)
+
 
 
 const PORT = process.env.PORT || 5000;

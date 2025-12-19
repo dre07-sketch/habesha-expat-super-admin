@@ -6,7 +6,24 @@ const bcrypt = require('bcrypt');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const jwt = require('jsonwebtoken');
 
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).json({ error: "Authentication token required" });
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+        if (err) {
+            return res.status(403).json({ error: "Invalid or expired token" });
+        }
+        req.user = user;
+        next();
+    });
+}
 
 const uploadDir = 'uploads/';
 if (!fs.existsSync(uploadDir)) {
@@ -43,7 +60,7 @@ router.post('/upload', upload.single('image'), (req, res) => {
 router.get('/admins-get', async (req, res) => {
     try {
         const result = await pool.query(
-            "SELECT id, name, email, role, status, avatar_url, created_at as last_active FROM administrators WHERE role IN ('SuperAdmin', 'Admin', 'Editor', 'Moderator') ORDER BY id ASC"
+            "SELECT id, name, email, role, status, avatar_url, created_at as last_active FROM administrators WHERE role IN ('Super-Admin', 'Admin', 'Editor', 'Moderator') ORDER BY id ASC"
         );
 
         // Process the rows to create valid Image URLs
@@ -103,7 +120,7 @@ router.post('/admins-create', async (req, res) => {
 router.put('/admins/:id/status', async (req, res) => {
     try {
         const { status } = req.body; // Expects 'active' or 'suspended'
-        
+
         await pool.query(
             'UPDATE administrators SET status = $1 WHERE id = $2',
             [status, req.params.id]
@@ -123,7 +140,7 @@ router.get('/system-status', async (req, res) => {
         // Ensure table has rows, otherwise insert defaults (Safety check)
         const check = await pool.query('SELECT count(*) FROM system_status');
         if (parseInt(check.rows[0].count) === 0) {
-             await pool.query("INSERT INTO system_status (service_name, status) VALUES ('Public Website', 'activated'), ('Admin Panel', 'activated')");
+            await pool.query("INSERT INTO system_status (service_name, status) VALUES ('Public Website', 'activated'), ('Admin Panel', 'activated')");
         }
 
         const result = await pool.query('SELECT * FROM system_status');
@@ -138,7 +155,7 @@ router.get('/system-status', async (req, res) => {
 router.put('/system-status/website', async (req, res) => {
     try {
         const { status } = req.body; // 'activated' or 'deactivated'
-        
+
         const result = await pool.query(
             "UPDATE system_status SET status = $1, updated_at = NOW() WHERE service_name = 'Public Website' RETURNING *",
             [status]
@@ -154,7 +171,7 @@ router.put('/system-status/website', async (req, res) => {
 router.put('/system-status/admin', async (req, res) => {
     try {
         const { status } = req.body; // 'activated' or 'deactivated'
-        
+
         const result = await pool.query(
             "UPDATE system_status SET status = $1, updated_at = NOW() WHERE service_name = 'Admin Panel' RETURNING *",
             [status]
@@ -165,5 +182,62 @@ router.put('/system-status/admin', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+
+router.put('/settings/account', authenticateToken, async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        // Get admin ID from the authenticated request
+        const adminId = req.user.id;
+
+        let sql, params;
+
+        if (password) {
+            // Update both email and password
+            const salt = await bcrypt.genSalt(10);
+            const passwordHash = await bcrypt.hash(password, salt);
+            sql = `UPDATE administrators SET email = $1, password_hash = $2 WHERE id = $3`;
+            params = [email, passwordHash, adminId];
+        } else {
+            // Update only email
+            sql = `UPDATE administrators SET email = $1 WHERE id = $2`;
+            params = [email, adminId];
+        }
+
+        await pool.query(sql, params);
+        res.json({ success: true, message: 'Account settings updated successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.get("/me", authenticateToken, async (req, res) => {
+    try {
+        // Get admin ID from the authenticated request (added by authenticateToken middleware)
+        const adminId = req.user.id;
+
+        const sql = `
+      SELECT id, name, email, role, avatar_url, status, created_at
+      FROM administrators
+      WHERE id = $1
+      LIMIT 1
+    `;
+
+        const { rows } = await pool.query(sql, [adminId]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ error: "Admin not found" });
+        }
+
+        res.json(rows[0]);
+
+    } catch (err) {
+        console.error("Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
 
 module.exports = router;

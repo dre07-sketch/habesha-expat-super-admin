@@ -166,3 +166,14 @@ export interface JobApplication {
   resumeUrl: string;
   avatar?: string;
 }
+
+export interface Ad {
+  id: number;
+  title: string;
+  type: string;
+  placement: string;
+  url: string;
+  durationDays: number;
+  mediaFile: string | null;
+  status: 'active' | 'inactive';
+}
