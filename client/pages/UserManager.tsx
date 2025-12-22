@@ -18,14 +18,26 @@ const UserManager: React.FC = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/users/users-get');
+        const token = localStorage.getItem('authToken');
+        const response = await fetch('http://localhost:5000/api/users/users-get', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.status === 401 || response.status === 403) {
+          setError('Unauthorized. Please login again.');
+          // Optional: Redirect to login if needed, or handle in global interceptor
+          return;
+        }
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
         setUsers(data);
       } catch (err) {
-        setError(err.message || 'Failed to fetch users');
+        setError(err instanceof Error ? err.message : 'Failed to fetch users');
       } finally {
         setLoading(false);
       }
@@ -34,16 +46,40 @@ const UserManager: React.FC = () => {
     fetchUsers();
   }, []);
 
-  const toggleStatus = (id: string) => {
-    setUsers(users.map(user => {
-      if (user.id === id) {
-        return {
-          ...user,
-          status: user.status === Status.ACTIVE ? Status.SUSPENDED : Status.ACTIVE
-        };
+  const toggleStatus = async (id: string) => {
+    // Optimistic update
+    const userToUpdate = users.find(u => u.id === id);
+    if (!userToUpdate) return;
+
+    const newStatus = userToUpdate.status === Status.ACTIVE ? Status.SUSPENDED : Status.ACTIVE;
+
+    // Update UI immediately
+    setUsers(users.map(user =>
+      user.id === id ? { ...user, status: newStatus } : user
+    ));
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`http://localhost:5000/api/users/${id}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update status');
       }
-      return user;
-    }));
+    } catch (err) {
+      console.error(err);
+      // Revert on error
+      setUsers(users.map(user =>
+        user.id === id ? { ...user, status: userToUpdate.status } : user
+      ));
+      alert("Failed to update user status. Check console.");
+    }
   };
 
   const handleSendEmail = async (e: React.FormEvent) => {
@@ -51,9 +87,13 @@ const UserManager: React.FC = () => {
     setIsSending(true);
 
     try {
+      const token = localStorage.getItem('authToken');
       const response = await fetch('http://localhost:5000/api/users/mass-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           subject: emailSubject,
           message: emailMessage,
@@ -64,13 +104,13 @@ const UserManager: React.FC = () => {
       const data = await response.json();
 
       if (response.ok) {
-        
+
         setIsEmailModalOpen(false);
         setEmailSubject('');
         setEmailMessage('');
         setEmailAudience('all');
       } else {
-        
+
       }
     } catch (err) {
       console.error(err);
@@ -134,8 +174,8 @@ const UserManager: React.FC = () => {
               key={filter}
               onClick={() => setActiveFilter(filter)}
               className={`px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 border ${activeFilter === filter
-                  ? 'bg-slate-800 text-white border-slate-800 dark:bg-white dark:text-slate-900 dark:border-white shadow-md transform scale-105'
-                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 dark:bg-white/5 dark:text-slate-300 dark:border-white/10 dark:hover:bg-white/10'
+                ? 'bg-slate-800 text-white border-slate-800 dark:bg-white dark:text-slate-900 dark:border-white shadow-md transform scale-105'
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 dark:bg-white/5 dark:text-slate-300 dark:border-white/10 dark:hover:bg-white/10'
                 }`}
             >
               {filter}
@@ -196,8 +236,8 @@ const UserManager: React.FC = () => {
                       <td className="p-4">
                         <div className="flex items-center gap-2">
                           <span className={`font-medium ${user.role === 'Member' ? 'text-amber-600 dark:text-amber-400' :
-                              user.role === 'Author' ? 'text-blue-600 dark:text-blue-400' :
-                                'text-slate-600 dark:text-slate-300'
+                            user.role === 'Author' ? 'text-blue-600 dark:text-blue-400' :
+                              'text-slate-600 dark:text-slate-300'
                             }`}>
                             {user.role}
                           </span>
@@ -215,8 +255,8 @@ const UserManager: React.FC = () => {
                         <button
                           onClick={() => toggleStatus(user.id)}
                           className={`p-2 rounded-lg transition-colors mr-2 ${user.status === Status.ACTIVE
-                              ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10'
-                              : 'text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10'
+                            ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10'
+                            : 'text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10'
                             }`}
                           title={user.status === Status.ACTIVE ? "Suspend User" : "Activate User"}
                         >

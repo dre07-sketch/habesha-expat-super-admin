@@ -47,7 +47,7 @@ const Settings: React.FC = () => {
     const fetchData = async () => {
         try {
             const token = localStorage.getItem('authToken');
-            const headers = {
+            const headers: HeadersInit = {
                 'Authorization': `Bearer ${token}`
             };
 
@@ -70,12 +70,12 @@ const Settings: React.FC = () => {
             }
 
             // Fetch Admins
-            const adminsRes = await fetch(`${API_BASE_URL}/admins-get`);
+            const adminsRes = await fetch(`${API_BASE_URL}/admins-get`, { headers });
             const adminsData = await adminsRes.json();
             setAdmins(adminsData);
 
             // Fetch System Status
-            const statusRes = await fetch(`${API_BASE_URL}/system-status`);
+            const statusRes = await fetch(`${API_BASE_URL}/system-status`, { headers });
             const statusData: SystemStatus[] = await statusRes.json();
 
             // Map DB 'activated'/'deactivated' to boolean
@@ -109,9 +109,13 @@ const Settings: React.FC = () => {
 
         if (confirm) {
             try {
+                const token = localStorage.getItem('authToken');
                 const response = await fetch(`${API_BASE_URL}${endpoint}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({ status: dbStatus })
                 });
 
@@ -133,9 +137,13 @@ const Settings: React.FC = () => {
         setIsTogglingStatus(admin.id);
 
         try {
+            const token = localStorage.getItem('authToken');
             const response = await fetch(`${API_BASE_URL}/admins/${admin.id}/status`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ status: newStatus })
             });
 
@@ -186,8 +194,13 @@ const Settings: React.FC = () => {
                 formData.append('image', selectedImage); // Field name must match multer
 
                 // Note: You didn't provide the exact route for upload, assuming '/upload'
+                const token = localStorage.getItem('authToken');
+                // Note: FormData does not need Content-Type header manually set, browsers handle it for multipart
                 const uploadRes = await fetch(`${API_BASE_URL}/upload`, {
                     method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: formData
                 });
 
@@ -198,9 +211,13 @@ const Settings: React.FC = () => {
             }
 
             // B. Create Admin Record
+            const token = localStorage.getItem('authToken');
             const response = await fetch(`${API_BASE_URL}/admins-create`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     ...newAdmin,
                     avatar_url: avatarUrl

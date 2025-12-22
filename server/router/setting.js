@@ -43,8 +43,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// --- UPLOAD ENDPOINT ---
-// Frontend calls this first to get the URL
+
 router.post('/upload', upload.single('image'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
@@ -54,9 +53,8 @@ router.post('/upload', upload.single('image'), (req, res) => {
     res.json({ url: fileUrl, path: req.file.path });
 });
 
-// --- ADMIN MANAGEMENT ENDPOINTS ---
 
-// Get Admins
+
 router.get('/admins-get', async (req, res) => {
     try {
         const result = await pool.query(
@@ -84,7 +82,7 @@ router.get('/admins-get', async (req, res) => {
     }
 });
 
-// Create Admin
+
 router.post('/admins-create', async (req, res) => {
     try {
         const { name, email, password, role, avatar_url } = req.body;
@@ -116,7 +114,7 @@ router.post('/admins-create', async (req, res) => {
     }
 });
 
-// Toggle Admin Status (Suspend/Activate)
+
 router.put('/admins/:id/status', async (req, res) => {
     try {
         const { status } = req.body; // Expects 'active' or 'suspended'
@@ -132,9 +130,7 @@ router.put('/admins/:id/status', async (req, res) => {
     }
 });
 
-// --- SYSTEM KILL SWITCH ENDPOINTS ---
 
-// Get System Status
 router.get('/system-status', async (req, res) => {
     try {
         // Ensure table has rows, otherwise insert defaults (Safety check)
@@ -151,7 +147,6 @@ router.get('/system-status', async (req, res) => {
     }
 });
 
-// Update Public Website Status
 router.put('/system-status/website', async (req, res) => {
     try {
         const { status } = req.body; // 'activated' or 'deactivated'
@@ -167,7 +162,7 @@ router.put('/system-status/website', async (req, res) => {
     }
 });
 
-// Update Admin Panel Status
+
 router.put('/system-status/admin', async (req, res) => {
     try {
         const { status } = req.body; // 'activated' or 'deactivated'

@@ -23,7 +23,10 @@ const Jobs: React.FC = () => {
         const fetchJobs = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`http://localhost:5000/api/jobs/jobs-get?page=${page}&limit=10`);
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`http://localhost:5000/api/jobs/jobs-get?page=${page}&limit=10`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 if (!response.ok) throw new Error('Failed to fetch');
                 const data = await response.json();
 
@@ -58,7 +61,11 @@ const Jobs: React.FC = () => {
     const toggleJobStatus = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
         try {
-            const response = await fetch(`http://localhost:5000/api/jobs/${id}/status`, { method: 'PUT' });
+            const token = localStorage.getItem('authToken');
+            const response = await fetch(`http://localhost:5000/api/jobs/${id}/status`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
             if (!response.ok) throw new Error('Failed');
             const data = await response.json();
             setJobs(prev => prev.map(j => j.id === id ? { ...j, status: data.status === 'visible' ? Status.ACTIVE : Status.SUSPENDED } : j));
@@ -70,7 +77,11 @@ const Jobs: React.FC = () => {
         e.stopPropagation();
         if (window.confirm('Delete this posting?')) {
             try {
-                const response = await fetch(`http://localhost:5000/api/jobs/job-delete/${id}`, { method: 'DELETE' });
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`http://localhost:5000/api/jobs/job-delete/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 if (response.ok) setJobs(prev => prev.filter(j => j.id !== id));
             } catch (err) { alert('Delete failed'); }
         }
@@ -109,8 +120,8 @@ const Jobs: React.FC = () => {
             {/* Dashboard Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {filteredJobs.map((job) => (
-                    <div 
-                        key={job.id} 
+                    <div
+                        key={job.id}
                         className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-white/5 hover:border-blue-500 transition-all group cursor-pointer"
                         onClick={() => setSelectedJob(job)}
                     >
@@ -137,14 +148,14 @@ const Jobs: React.FC = () => {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 lg:p-12">
                     {/* Backdrop */}
                     <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-xl animate-fade-in" onClick={() => setSelectedJob(null)}></div>
-                    
+
                     {/* Modal Content */}
                     <div className="relative w-full max-w-6xl bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-fade-in-up">
-                        
+
                         {/* Header Section with Mesh Gradient */}
                         <div className="relative p-8 lg:p-12 border-b border-slate-100 dark:border-white/5">
                             <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-transparent pointer-events-none"></div>
-                            
+
                             <div className="flex justify-between items-start relative z-10">
                                 <div className="flex flex-col md:flex-row gap-8 items-start md:items-center">
                                     <div className="w-24 h-24 rounded-[2rem] bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-3xl font-black text-white shadow-2xl shadow-blue-500/40">
@@ -153,9 +164,8 @@ const Jobs: React.FC = () => {
                                     <div className="space-y-3">
                                         <div className="flex flex-wrap items-center gap-3">
                                             <h2 className="text-4xl font-black tracking-tight dark:text-white">{selectedJob.title}</h2>
-                                            <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm ${
-                                                selectedJob.status === Status.ACTIVE ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'
-                                            }`}>
+                                            <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm ${selectedJob.status === Status.ACTIVE ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'
+                                                }`}>
                                                 {selectedJob.status}
                                             </span>
                                         </div>
@@ -192,7 +202,7 @@ const Jobs: React.FC = () => {
 
                         {/* Content Scroll Area */}
                         <div className="flex-1 overflow-y-auto p-8 lg:p-12 scrollbar-hide space-y-16">
-                            
+
                             {/* Description */}
                             <div className="max-w-4xl">
                                 <h4 className="flex items-center gap-3 text-sm font-black uppercase tracking-[0.2em] text-blue-600 mb-6">
@@ -240,21 +250,20 @@ const Jobs: React.FC = () => {
                                 <div className="flex items-center gap-2"><TrendingUp size={20} className="text-blue-500" /> High Interest</div>
                                 <div className="flex items-center gap-2"><Calendar size={20} /> Posted {selectedJob.postedDate}</div>
                             </div>
-                            
+
                             <div className="flex items-center gap-3 w-full md:w-auto">
-                                <button 
+                                <button
                                     onClick={(e) => { toggleJobStatus(selectedJob.id, e); setSelectedJob(null); }}
-                                    className={`flex-1 md:flex-none px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${
-                                        selectedJob.status === Status.ACTIVE 
-                                        ? 'bg-red-50 text-red-600 hover:bg-red-600 hover:text-white' 
-                                        : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'
-                                    }`}
+                                    className={`flex-1 md:flex-none px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${selectedJob.status === Status.ACTIVE
+                                            ? 'bg-red-50 text-red-600 hover:bg-red-600 hover:text-white'
+                                            : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'
+                                        }`}
                                 >
                                     {selectedJob.status === Status.ACTIVE ? 'Take Down' : 'Publish Live'}
                                 </button>
-                                <a 
-                                    href={selectedJob.url} 
-                                    target="_blank" 
+                                <a
+                                    href={selectedJob.url}
+                                    target="_blank"
                                     rel="noreferrer"
                                     className="flex-1 md:flex-none flex items-center justify-center gap-3 px-10 py-4 bg-blue-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-500/20 transition-all"
                                 >

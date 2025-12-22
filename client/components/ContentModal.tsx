@@ -43,7 +43,12 @@ const ContentModal: React.FC<ContentModalProps> = ({ isOpen, onClose, item, revi
         if (!item) return;
         setLoading(true);
         try {
-            const response = await fetch(`http://localhost:5000/api/contents/contents/${item.type}/${item.id}`);
+            const token = localStorage.getItem('authToken');
+            const response = await fetch(`http://localhost:5000/api/contents/contents/${item.type}/${item.id}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             if (response.ok) {
                 const data = await response.json();
                 setCommentsList(data.commentsList || []);

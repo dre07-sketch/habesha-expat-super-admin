@@ -13,7 +13,10 @@ import Jobs from './pages/Jobs';
 
 const App: React.FC = () => {
   // In a real app, this would be managed by Context/Redux and persistence
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  // Check localStorage on mount to persist login
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return !!localStorage.getItem('authToken');
+  });
   const [isDark, setIsDark] = useState<boolean>(true);
 
   useEffect(() => {
@@ -26,7 +29,10 @@ const App: React.FC = () => {
 
   const toggleTheme = () => setIsDark(!isDark);
   const handleLogin = () => setIsAuthenticated(true);
-  const handleLogout = () => setIsAuthenticated(false);
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    setIsAuthenticated(false);
+  };
 
   return (
     <Router>

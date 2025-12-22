@@ -25,10 +25,13 @@ const Marketing: React.FC = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
+            const token = localStorage.getItem('authToken');
+            const headers: HeadersInit = token ? { 'Authorization': `Bearer ${token}` } : {};
+
             const [subsRes, adsRes, newsRes] = await Promise.all([
-                fetch(`${API_BASE_URL}/subscribers-get`),
-                fetch(`${API_BASE_URL}/ads-get`),
-                fetch(`${API_BASE_URL}/newsletters-get`)
+                fetch(`${API_BASE_URL}/subscribers-get`, { headers }),
+                fetch(`${API_BASE_URL}/ads-get`, { headers }),
+                fetch(`${API_BASE_URL}/newsletters-get`, { headers })
             ]);
 
             const subsData = await subsRes.json();
@@ -53,9 +56,13 @@ const Marketing: React.FC = () => {
     const handleToggleAdStatus = async (id: string, currentStatus: string) => {
         const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
         try {
+            const token = localStorage.getItem('authToken');
             const res = await fetch(`${API_BASE_URL}/ads/${id}/status`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ status: newStatus })
             });
             if (res.ok) {
@@ -70,7 +77,11 @@ const Marketing: React.FC = () => {
     const handleDeleteAd = async (id: string) => {
         if (!window.confirm("Are you sure you want to delete this campaign?")) return;
         try {
-            await fetch(`${API_BASE_URL}/ads/${id}`, { method: 'DELETE' });
+            const token = localStorage.getItem('authToken');
+            await fetch(`${API_BASE_URL}/ads/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
             setAds(ads.filter(ad => ad.id !== id));
             setSelectedAd(null);
         } catch (err) {
@@ -130,7 +141,7 @@ const Marketing: React.FC = () => {
                             <p className="text-slate-500 dark:text-slate-400 text-sm">Total Audience</p>
                             <p className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{subscribers.length.toLocaleString()}</p>
                         </div>
-                        
+
                     </div>
 
                     <div className="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
@@ -309,8 +320,8 @@ const Marketing: React.FC = () => {
                             <button
                                 onClick={() => handleToggleAdStatus(selectedAd.id, selectedAd.status)}
                                 className={`flex-1 py-3 rounded-xl font-bold shadow-lg transition-all transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 ${selectedAd.status === 'active'
-                                        ? 'bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 hover:border-red-200'
-                                        : 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-emerald-500/25 hover:shadow-emerald-500/40'
+                                    ? 'bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 hover:border-red-200'
+                                    : 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-emerald-500/25 hover:shadow-emerald-500/40'
                                     }`}
                             >
                                 {selectedAd.status === 'active' ? <><Ban size={18} /> Deactivate Campaign</> : <><CheckCircle2 size={18} /> Activate Campaign</>}

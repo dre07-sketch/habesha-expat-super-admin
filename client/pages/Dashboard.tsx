@@ -40,14 +40,16 @@ const Dashboard: React.FC = () => {
         const fetchDashboardData = async () => {
             try {
                 setLoading(true);
+                const token = localStorage.getItem('authToken');
+                const headers: HeadersInit = token ? { 'Authorization': `Bearer ${token}` } : {};
 
                 const [summaryRes, growthRes, membershipRes, engagementRes, businessRes, locationsRes] = await Promise.all([
-                    fetch('http://localhost:5000/api/dashboard/summary'),
-                    fetch('http://localhost:5000/api/dashboard/growth'),
-                    fetch('http://localhost:5000/api/dashboard/membership'),
-                    fetch('http://localhost:5000/api/dashboard/engagement'),
-                    fetch('http://localhost:5000/api/dashboard/business'),
-                    fetch('http://localhost:5000/api/dashboard/locations/top')
+                    fetch('http://localhost:5000/api/dashboard/summary', { headers }),
+                    fetch('http://localhost:5000/api/dashboard/growth', { headers }),
+                    fetch('http://localhost:5000/api/dashboard/membership', { headers }),
+                    fetch('http://localhost:5000/api/dashboard/engagement', { headers }),
+                    fetch('http://localhost:5000/api/dashboard/business', { headers }),
+                    fetch('http://localhost:5000/api/dashboard/locations/top', { headers })
                 ]);
 
                 const [summary, growth, membership, engagement, business, locations] = await Promise.all([
@@ -577,8 +579,8 @@ const Dashboard: React.FC = () => {
                                             <div className="flex items-center gap-3">
                                                 <span className="font-black text-white text-lg">{cat.count}</span>
                                                 <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${isPositive
-                                                        ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                                                        : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                                    : 'bg-red-500/20 text-red-400 border border-red-500/30'
                                                     }`}>
                                                     {isPositive ? '+' : ''}{change}%
                                                 </span>

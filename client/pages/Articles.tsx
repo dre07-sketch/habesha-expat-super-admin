@@ -52,7 +52,12 @@ const Articles: React.FC = () => {
   const loadArticles = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/articles/articles-get`);
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/api/articles/articles-get`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
 
       if (!response.ok) {
         throw new Error('Failed to fetch articles');
@@ -95,7 +100,12 @@ const Articles: React.FC = () => {
   // --- Fetch comments for a specific article ---
   const fetchComments = async (articleId: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/articles/articles/${articleId}/comments`);
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/api/articles/articles/${articleId}/comments`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch comments');
       }
@@ -112,7 +122,12 @@ const Articles: React.FC = () => {
   // --- Fetch likes for a specific article ---
   const fetchLikes = async (articleId: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/articles/articles/${articleId}/likes`);
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/api/articles/articles/${articleId}/likes`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch likes');
       }
@@ -130,10 +145,14 @@ const Articles: React.FC = () => {
   const handleDeleteArticle = async (articleId: string) => {
     setIsDeleting(true);
     setDeleteError(null);
-    
+
     try {
+      const token = localStorage.getItem('authToken');
       const response = await fetch(`${API_BASE_URL}/api/articles/articles-delete/${articleId}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
 
       if (!response.ok) {
@@ -182,10 +201,12 @@ const Articles: React.FC = () => {
     setStatusUpdateError(null);
 
     try {
+      const token = localStorage.getItem('authToken');
       const response = await fetch(`${API_BASE_URL}/api/articles/toggle-status/${articleId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
       });
 
@@ -282,7 +303,7 @@ const Articles: React.FC = () => {
               className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-slate-800 dark:text-white placeholder-slate-400 transition-all shadow-sm"
             />
           </div>
-          
+
         </div>
       </div>
 
@@ -328,7 +349,7 @@ const Articles: React.FC = () => {
                     <span className="flex items-center"><MessageCircle size={12} className="mr-1.5 text-slate-400" /> {article.comments || 0}</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <button 
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedArticle(article);
@@ -352,7 +373,7 @@ const Articles: React.FC = () => {
         </div>
       )}
 
-      
+
 
       <Modal isOpen={showDeleteConfirm} onClose={() => {
         setShowDeleteConfirm(false);
@@ -465,7 +486,7 @@ const Articles: React.FC = () => {
                   <div className="animate-in slide-in-from-bottom-2 fade-in duration-300">
                     <div className="prose prose-lg dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 leading-loose">
                       <p className="lead text-xl text-slate-500 dark:text-slate-400 font-serif italic border-l-4 border-blue-500 pl-4 mb-8">{selectedArticle.excerpt}</p>
-                      
+
                       {/* Video Player */}
                       {selectedArticle.video_url && (
                         <div className="my-8 rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-slate-700">
@@ -483,8 +504,8 @@ const Articles: React.FC = () => {
                             </div>
                           ) : (
                             // Local video or other direct video link
-                            <video 
-                              controls 
+                            <video
+                              controls
                               className="w-full max-h-[500px]"
                               poster={selectedArticle.image || undefined}
                               preload="metadata"
@@ -498,7 +519,7 @@ const Articles: React.FC = () => {
                           </div>
                         </div>
                       )}
-                      
+
                       <div className="whitespace-pre-line font-serif text-lg">{selectedArticle.content}</div>
                     </div>
                   </div>
@@ -611,7 +632,7 @@ const Articles: React.FC = () => {
                 <span className={`uppercase font-bold text-sm px-2 py-0.5 rounded ${selectedArticle.status === 'published' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'}`}>{selectedArticle.status}</span>
               </div>
               <div className="flex space-x-3 w-full sm:w-auto">
-                <button 
+                <button
                   onClick={() => setShowDeleteConfirm(true)}
                   className="flex-1 sm:flex-none bg-red-600 hover:bg-red-500 text-white px-6 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center transition-all shadow-lg shadow-red-600/20"
                 >

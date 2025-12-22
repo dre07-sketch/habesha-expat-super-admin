@@ -42,7 +42,10 @@ const ContentManager: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/contents`);
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/contents`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (!response.ok) throw new Error('Failed to fetch content');
       const data = await response.json();
 
