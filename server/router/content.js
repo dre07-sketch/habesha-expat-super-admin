@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../connection/db');
 const multer = require('multer');
 const path = require('path');
+const { getImageUrl } = require('../utils/imageHelper');
 
 
 
@@ -53,8 +54,8 @@ const upload = multer({
 
 
 router.get('/contents', async (req, res) => {
-  try {
-    const query = `
+    try {
+        const query = `
       -- VIDEOS
       SELECT 
         v.id, 
@@ -181,12 +182,25 @@ router.get('/contents', async (req, res) => {
       ORDER BY date DESC
     `;
 
-    const result = await pool.query(query);
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
-  }
+        const result = await pool.query(query);
+
+        // Process rows to resolve image URLs
+        const processedRows = result.rows.map(row => {
+            const enhancedRow = { ...row };
+            if (enhancedRow.thumbnail_url) {
+                enhancedRow.thumbnail_url = getImageUrl(req, enhancedRow.thumbnail_url);
+            }
+            if (enhancedRow.media_url) {
+                enhancedRow.media_url = getImageUrl(req, enhancedRow.media_url);
+            }
+            return enhancedRow;
+        });
+
+        res.json(processedRows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 

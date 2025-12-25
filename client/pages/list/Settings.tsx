@@ -53,44 +53,73 @@ const Settings: React.FC = () => {
 
             // Fetch Current Admin Email
             if (token) {
-                const meRes = await fetch(`${API_BASE_URL}/me`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
+                try {
+                    const meRes = await fetch(`${API_BASE_URL}/me`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    if (meRes.ok) {
+                        const meData = await meRes.json();
+                        if (meData.email) {
+                            setCurrentAdminEmail(meData.email);
+                        }
+                    } else {
+                        console.error("Failed to fetch current admin info:", meRes.status);
                     }
-                });
-                if (meRes.ok) {
-                    const meData = await meRes.json();
-                    if (meData.email) {
-                        setCurrentAdminEmail(meData.email);
-                    }
-                } else {
-                    console.error("Failed to fetch current admin info:", meRes.status);
+                } catch (e) {
+                    console.error("Error fetching me:", e);
                 }
             }
 
             // Fetch Admins
-            const adminsRes = await fetch(`${API_BASE_URL}/admins-get`, { headers });
-            const adminsData = await adminsRes.json();
-            setAdmins(adminsData);
+            try {
+                const adminsRes = await fetch(`${API_BASE_URL}/admins-get`, { headers });
+                if (adminsRes.ok) {
+                    const adminsData = await adminsRes.json();
+                    if (Array.isArray(adminsData)) {
+                        setAdmins(adminsData);
+                    } else {
+                        console.error("Admins data is not an array:", adminsData);
+                        setAdmins([]);
+                    }
+                } else {
+                    console.error("Failed to fetch admins:", adminsRes.status);
+                    setAdmins([]);
+                }
+            } catch (e) {
+                console.error("Error fetching admins:", e);
+                setAdmins([]);
+            }
 
             // Fetch System Status
-            const statusRes = await fetch(`${API_BASE_URL}/system-status`, { headers });
-            const statusData: SystemStatus[] = await statusRes.json();
+            try {
+                const statusRes = await fetch(`${API_BASE_URL}/system-status`, { headers });
+                if (statusRes.ok) {
+                    const statusData = await statusRes.json();
+                    if (Array.isArray(statusData)) {
+                        // Map DB 'activated'/'deactivated' to boolean
+                        const publicSite = statusData.find((s: any) => s.service_name === 'Public Website');
+                        const adminPanel = statusData.find((s: any) => s.service_name === 'Admin Panel');
 
-            // Map DB 'activated'/'deactivated' to boolean
-            const publicSite = statusData.find(s => s.service_name === 'Public Website');
-            const adminPanel = statusData.find(s => s.service_name === 'Admin Panel');
-
-            setSiteStatus({
-                public: publicSite?.status === 'activated',
-                admin: adminPanel?.status === 'activated'
-            });
+                        setSiteStatus({
+                            public: publicSite?.status === 'activated',
+                            admin: adminPanel?.status === 'activated'
+                        });
+                    } else {
+                        console.error("Status data is not an array:", statusData);
+                    }
+                } else {
+                    console.error("Failed to fetch system status:", statusRes.status);
+                }
+            } catch (e) {
+                console.error("Error fetching system status:", e);
+            }
 
             setIsLoadingData(false);
         } catch (error) {
             console.error("Failed to fetch settings data:", error);
-            alert("Error loading system data. Check console.");
             setIsLoadingData(false);
         }
     };

@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const { query, DB_TYPE } = require('../connection/db');
+const { getImageUrl } = require('../utils/imageHelper');
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -35,19 +36,7 @@ router.get('/events-get', async (req, res) => {
         const formatted = rows.map(event => {
             let finalImage = null;
             if (event.image) {
-                // 1. Replace Windows backslashes (\) with forward slashes (/)
-                // 2. Remove any double leading slashes just in case
-                let cleanPath = event.image.replace(/\\/g, '/').replace(/^\/+/, '');
-
-                // 3. Fix potential mismatch between 'uploads' (DB) and 'upload' (server folder)
-                if (cleanPath.startsWith('uploads/')) {
-                    cleanPath = cleanPath.replace('uploads/', 'upload/');
-                } else if (!cleanPath.startsWith('upload/')) {
-                    // If it doesn't have a folder prefix, assume it belongs in upload/
-                    cleanPath = `upload/${cleanPath}`;
-                }
-
-                finalImage = `${baseURL}/${cleanPath}`;
+                finalImage = getImageUrl(req, event.image);
             }
             return { ...event, image: finalImage };
         });

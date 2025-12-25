@@ -42,23 +42,10 @@ const upload = multer({
     }
   }
 });
-const buildMediaURL = (path, baseURL) => {
-  if (!path) return null;
+const { getImageUrl } = require('../utils/imageHelper');
 
-  // already full URL (YouTube, Vimeo, CDN, etc.)
-  if (/^https?:\/\//i.test(path)) {
-    return path;
-  }
-
-  let cleanPath = path.replace(/\\/g, '/').replace(/^\/+/, '');
-
-  if (cleanPath.startsWith('uploads/')) {
-    cleanPath = cleanPath.replace('uploads/', 'upload/');
-  } else if (!cleanPath.startsWith('upload/')) {
-    cleanPath = `upload/${cleanPath}`;
-  }
-
-  return `${baseURL}/${cleanPath}`;
+const buildMediaURL = (path, req) => {
+  return getImageUrl(req, path);
 };
 // Additional routes for creating and updating articles can be added here
 router.get("/articles-get", async (req, res) => {
@@ -103,8 +90,8 @@ router.get("/articles-get", async (req, res) => {
         created_at: article.created_at,
         tags: article.tags || [],
         url: article.url || null,
-        image: buildMediaURL(article.image_url, baseURL),
-        video_url: buildMediaURL(article.video_url, baseURL)
+        image: buildMediaURL(article.image_url, req),
+        video_url: buildMediaURL(article.video_url, req)
       };
     });
 
@@ -157,13 +144,7 @@ router.post('/toggle-status/:id', async (req, res) => {
     const baseURL = `${req.protocol}://${req.get("host")}`;
 
     if (rawArticle.image_url) {
-      let cleanPath = rawArticle.image_url.replace(/\\/g, '/').replace(/^\/+/, '');
-      if (cleanPath.startsWith('uploads/')) {
-        cleanPath = cleanPath.replace('uploads/', 'upload/');
-      } else if (!cleanPath.startsWith('upload/')) {
-        cleanPath = `upload/${cleanPath}`;
-      }
-      finalImage = `${baseURL}/${cleanPath}`;
+      finalImage = buildMediaURL(rawArticle.image_url, req);
     }
 
     const formattedArticle = {

@@ -7,6 +7,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const jwt = require('jsonwebtoken');
+const { getImageUrl } = require('../utils/imageHelper');
 
 function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
@@ -25,23 +26,7 @@ function authenticateToken(req, res, next) {
     });
 }
 
-const uploadDir = 'uploads/';
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir);
-}
-
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, uploadDir); // Save to 'uploads' folder
-    },
-    filename: function (req, file, cb) {
-        // Create unique filename: timestamp + original extension
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
-    }
-});
-
-const upload = multer({ storage: storage });
+const upload = require('../middleware/upload');
 
 
 router.post('/upload', upload.single('image'), (req, res) => {
@@ -68,9 +53,8 @@ router.get('/admins-get', async (req, res) => {
                 // 2. Remove 'public/' or './' if they exist at the start (cleanup)
                 let cleanPath = admin.avatar_url.replace(/\\/g, '/');
 
-                // 3. Construct the full URL
-                // Result example: http://localhost:5000/uploads/12345.jpg
-                admin.avatar_url = `${req.protocol}://${req.get('host')}/${cleanPath}`;
+                // 3. Construct the full URL using helper
+                admin.avatar_url = getImageUrl(req, cleanPath);
             }
             return admin;
         });
@@ -225,7 +209,13 @@ router.get("/me", authenticateToken, async (req, res) => {
             return res.status(404).json({ error: "Admin not found" });
         }
 
-        res.json(rows[0]);
+        const admin = rows[0];
+        if (admin.avatar_url) {
+            let cleanPath = admin.avatar_url.replace(/\\/g, '/');
+            admin.avatar_url = getImageUrl(req, cleanPath);
+        }
+
+        res.json(admin);
 
     } catch (err) {
         console.error("Error:", err);

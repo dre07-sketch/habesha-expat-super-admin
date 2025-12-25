@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, FileVideo, Settings, LogOut, Megaphone, Calendar, Moon, Sun, FileText, Briefcase } from 'lucide-react';
+import { LayoutDashboard, Users, ClipboardList, FileVideo, Settings, LogOut, Megaphone, Calendar, Moon, Sun, FileText, Briefcase } from 'lucide-react';
 
 interface SidebarProps {
   onLogout: () => void;
@@ -21,6 +21,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout, toggleTheme, isDark }) => {
     { path: '/users', icon: Users, label: 'User Management' },
     { path: '/marketing', icon: Megaphone, label: 'Marketing & Ads' },
     { path: '/events', icon: Calendar, label: 'Events' },
+    { path: '/audit-logs', icon: ClipboardList, label: 'Audit Logs' },
     { path: '/settings', icon: Settings, label: 'System Settings' },
   ];
 

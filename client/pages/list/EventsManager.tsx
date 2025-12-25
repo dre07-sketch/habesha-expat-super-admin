@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, MapPin, Calendar, Clock, Users, DollarSign, Trash2, User, Ticket, Eye, EyeOff, CheckCircle, Circle, Search, Loader2, AlertCircle } from 'lucide-react';
-import Modal from '../components/Modal';
+import Modal from '../../components/Modal';
 
-import { Event } from '../types';
+import { Event } from '../../types';
 
 // 1. Define your API Base URL
 const API_BASE_URL = 'http://localhost:5000/api/events';

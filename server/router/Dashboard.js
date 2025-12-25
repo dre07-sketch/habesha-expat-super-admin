@@ -238,11 +238,23 @@ router.get('/engagement', async (req, res) => {
         (SELECT COUNT(*) FROM comments) AS total_comments
     `);
 
+        const { getImageUrl } = require('../utils/imageHelper');
+
+        const processedArticles = articles.rows.map(a => ({
+            ...a,
+            image_url: getImageUrl(req, a.image_url)
+        }));
+
+        const processedVideos = videos.rows.map(v => ({
+            ...v,
+            thumbnail_url: getImageUrl(req, v.thumbnail_url)
+        }));
+
         res.json({
             success: true,
             data: {
-                topArticles: articles.rows,
-                topVideos: videos.rows,
+                topArticles: processedArticles,
+                topVideos: processedVideos,
                 totals: totals.rows[0]
             }
         });
@@ -334,9 +346,14 @@ router.get('/articles/recent', async (req, res) => {
       ORDER BY a.publish_date DESC NULLS LAST, a.created_at DESC
       LIMIT $1
     `;
-        const { rows } = await query(sql, [limit]);
+        const { getImageUrl } = require('../utils/imageHelper');
 
-        res.json({ success: true, data: rows });
+        const processedRows = rows.map(row => ({
+            ...row,
+            image_url: getImageUrl(req, row.image_url)
+        }));
+
+        res.json({ success: true, data: processedRows });
     } catch (err) {
         console.error("❌ Error recent articles:", err);
         res.status(500).json({ success: false, error: "Server error" });

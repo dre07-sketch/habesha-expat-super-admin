@@ -9,7 +9,7 @@ import {
     Briefcase, TrendingUp, Building2, ArrowRight,
     Activity, Zap, Award, Crown, Sparkles
 } from 'lucide-react';
-import { CITY_COORDINATES, COUNTRY_FLAGS } from '../cityCoordinates';
+import { CITY_COORDINATES, COUNTRY_FLAGS } from '../../cityCoordinates';
 
 const Dashboard: React.FC = () => {
     const [loading, setLoading] = useState(true);
@@ -43,36 +43,39 @@ const Dashboard: React.FC = () => {
                 const token = localStorage.getItem('authToken');
                 const headers: HeadersInit = token ? { 'Authorization': `Bearer ${token}` } : {};
 
-                const [summaryRes, growthRes, membershipRes, engagementRes, businessRes, locationsRes] = await Promise.all([
-                    fetch('http://localhost:5000/api/dashboard/summary', { headers }),
-                    fetch('http://localhost:5000/api/dashboard/growth', { headers }),
-                    fetch('http://localhost:5000/api/dashboard/membership', { headers }),
-                    fetch('http://localhost:5000/api/dashboard/engagement', { headers }),
-                    fetch('http://localhost:5000/api/dashboard/business', { headers }),
-                    fetch('http://localhost:5000/api/dashboard/locations/top', { headers })
-                ]);
+                const fetchSafe = async (url: string) => {
+                    try {
+                        const res = await fetch(url, { headers });
+                        if (!res.ok) {
+                            console.error(`Fetch failed for ${url}: ${res.status}`);
+                            return { success: false, data: {} };
+                        }
+                        return await res.json();
+                    } catch (e) {
+                        console.error(`Network error for ${url}:`, e);
+                        return { success: false, data: {} };
+                    }
+                };
 
                 const [summary, growth, membership, engagement, business, locations] = await Promise.all([
-                    summaryRes.json(),
-                    growthRes.json(),
-                    membershipRes.json(),
-                    engagementRes.json(),
-                    businessRes.json(),
-                    locationsRes.json()
+                    fetchSafe('http://localhost:5000/api/dashboard/summary'),
+                    fetchSafe('http://localhost:5000/api/dashboard/growth'),
+                    fetchSafe('http://localhost:5000/api/dashboard/membership'),
+                    fetchSafe('http://localhost:5000/api/dashboard/engagement'),
+                    fetchSafe('http://localhost:5000/api/dashboard/business'),
+                    fetchSafe('http://localhost:5000/api/dashboard/locations/top')
                 ]);
 
-                if (!summary.success || !growth.success || !membership.success ||
-                    !engagement.success || !business.success || !locations.success) {
-                    throw new Error('One or more API requests failed');
-                }
+                // We allow partial data now, but log if major parts are missing
+                if (!summary.success) console.warn("Dashboard summary failed to load");
 
                 setDashboardData({
-                    summary: summary.data,
-                    growth: growth.data,
-                    membership: membership.data,
-                    engagement: engagement.data,
-                    business: business.data,
-                    locations: locations.data
+                    summary: summary.data || {},
+                    growth: Array.isArray(growth.data) ? growth.data : [],
+                    membership: membership.data || {},
+                    engagement: engagement.data || {},
+                    business: business.data || {},
+                    locations: Array.isArray(locations.data) ? locations.data : []
                 });
 
                 setLoading(false);

@@ -4,9 +4,9 @@ import {
   Share2, Bookmark, EyeOff, Heart, MessageCircle,
   BarChart2, Search, Trash2, AlertTriangle, CheckCircle
 } from 'lucide-react';
-import Modal from '../components/Modal';
+import Modal from '../../components/Modal';
 
-import { Article } from '../types';
+import { Article } from '../../types';
 
 const API_BASE_URL = 'http://localhost:5000';
 
@@ -64,7 +64,7 @@ const Articles: React.FC = () => {
       }
 
       const jsonResponse = await response.json();
-      const articlesData = jsonResponse.data || [];
+      const articlesData = Array.isArray(jsonResponse.data) ? jsonResponse.data : [];
 
       const mappedArticles: Article[] = articlesData.map((item: any) => ({
         id: item.id,

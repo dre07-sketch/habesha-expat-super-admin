@@ -5,7 +5,7 @@ import {
     Eye, EyeOff, X, Calendar, ExternalLink, Award, Target, CheckCircle, Star,
     TrendingUp, ShieldCheck, Zap
 } from 'lucide-react';
-import { Job, Status } from '../types';
+import { Job, Status } from '../../types';
 
 const Jobs: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -255,8 +255,8 @@ const Jobs: React.FC = () => {
                                 <button
                                     onClick={(e) => { toggleJobStatus(selectedJob.id, e); setSelectedJob(null); }}
                                     className={`flex-1 md:flex-none px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${selectedJob.status === Status.ACTIVE
-                                            ? 'bg-red-50 text-red-600 hover:bg-red-600 hover:text-white'
-                                            : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'
+                                        ? 'bg-red-50 text-red-600 hover:bg-red-600 hover:text-white'
+                                        : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'
                                         }`}
                                 >
                                     {selectedJob.status === Status.ACTIVE ? 'Take Down' : 'Publish Live'}

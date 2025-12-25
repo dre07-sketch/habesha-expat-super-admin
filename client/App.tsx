@@ -2,21 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/auth/Login';
 import Sidebar from './components/Sidebar';
-import Dashboard from './pages/Dashboard';
-import ContentManager from './pages/ContentManager';
-import UserManager from './pages/UserManager';
-import Marketing from './pages/Marketing';
-import EventsManager from './pages/EventsManager';
-import Settings from './pages/Settings';
-import Articles from './pages/Articles';
-import Jobs from './pages/Jobs';
+import Dashboard from './pages/list/Dashboard';
+import ContentManager from './pages/list/ContentManager';
+import UserManager from './pages/list/UserManager';
+import Marketing from './pages/list/Marketing';
+import EventsManager from './pages/list/EventsManager';
+import Settings from './pages/list/Settings';
+import Articles from './pages/list/Articles';
+import Jobs from './pages/list/Jobs';
+import AuditLogDashboard from './pages/list/AuditLogDashboard';
 
 const App: React.FC = () => {
   // In a real app, this would be managed by Context/Redux and persistence
   // Check localStorage on mount to persist login
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return !!localStorage.getItem('authToken');
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isDark, setIsDark] = useState<boolean>(true);
 
   useEffect(() => {
@@ -51,6 +50,7 @@ const App: React.FC = () => {
                   <Route path="/users" element={<UserManager />} />
                   <Route path="/marketing" element={<Marketing />} />
                   <Route path="/events" element={<EventsManager />} />
+                  <Route path="/audit-logs" element={<AuditLogDashboard />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>

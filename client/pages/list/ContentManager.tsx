@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, RefreshCw, AlertCircle } from 'lucide-react';
-import MediaModal from '../components/ContentModal';
-import BusinessModal from '../components/BusinessModal';
+import MediaModal from '../../components/ContentModal';
+import BusinessModal from '../../components/BusinessModal';
 
 // --- Types ---
 export enum ContentType {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, MoreHorizontal, Shield, Mail, Ban, CheckCircle, X, Filter, Loader2, Search } from 'lucide-react';
-import { User as UserType, Status } from '../types';
+import { User as UserType, Status } from '../../types';
 
 const UserManager: React.FC = () => {
   const [users, setUsers] = useState<UserType[]>([]);
