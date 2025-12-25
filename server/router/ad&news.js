@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const { getImageUrl } = require('../utils/imageHelper');
 const { query } = require('../connection/db');
 
 const storage = multer.diskStorage({
@@ -64,18 +65,8 @@ router.get('/ads-get', async (req, res) => {
 
         const formattedRows = rows.map(row => {
             let mediaFile = row.mediaFile;
-            if (mediaFile && !mediaFile.startsWith('http')) {
-                // Normalize path: clean potentially double slashes or leading slashes
-                let cleanPath = mediaFile.replace(/\\/g, '/').replace(/^\/+/, '');
-
-                // Ensure it targets the 'upload/' directory (singular)
-                if (cleanPath.startsWith('uploads/')) {
-                    cleanPath = cleanPath.replace('uploads/', 'upload/');
-                } else if (!cleanPath.startsWith('upload/')) {
-                    cleanPath = `upload/${cleanPath}`;
-                }
-
-                mediaFile = `${baseURL}/${cleanPath}`;
+            if (mediaFile) {
+                mediaFile = getImageUrl(req, mediaFile);
             }
             return {
                 ...row,
@@ -146,7 +137,13 @@ router.get('/newsletters-get', async (req, res) => {
             ORDER BY created_at DESC
         `;
         const { rows } = await query(sql);
-        res.json(rows);
+        const processedRows = rows.map(row => {
+            if (row.image) {
+                row.image = getImageUrl(req, row.image);
+            }
+            return row;
+        });
+        res.json(processedRows);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

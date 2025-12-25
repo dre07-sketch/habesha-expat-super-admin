@@ -12,13 +12,7 @@ const getImageUrl = (req, dbPath) => {
     // Clean the path (remove backslashes, leading slashes)
     let cleanPath = dbPath.replace(/\\/g, '/').replace(/^\/+/, '');
 
-    // Normalize paths for Articles/Events (which historically used 'upload/') 
-    // vs Settings (which uses 'uploads/')
-    // If the path doesn't start with a known folder, we might need to guess or assume.
-    // However, looking at the code, articles currently force 'upload/' prefix.
-
-    // Construct the absolute physical path to check existence
-    // This assumes this file is in server/utils/
+    
     const serverRoot = path.join(__dirname, '..');
     const physicalPath = path.join(serverRoot, cleanPath);
 

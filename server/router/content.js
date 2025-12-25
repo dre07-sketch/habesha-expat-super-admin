@@ -187,6 +187,15 @@ router.get('/contents', async (req, res) => {
         // Process rows to resolve image URLs
         const processedRows = result.rows.map(row => {
             const enhancedRow = { ...row };
+
+            // Handle Postgres Array String for images (e.g. {"/path/1.jpg","/path/2.jpg"})
+            // Specifically common in Business table images
+            if (enhancedRow.thumbnail_url && typeof enhancedRow.thumbnail_url === 'string' && enhancedRow.thumbnail_url.startsWith('{')) {
+                // Remove {} and split by comma, take first, clean quotes
+                const clean = enhancedRow.thumbnail_url.replace(/^\{|\}$/g, '').split(',')[0].replace(/^"|"$/g, '');
+                enhancedRow.thumbnail_url = clean;
+            }
+
             if (enhancedRow.thumbnail_url) {
                 enhancedRow.thumbnail_url = getImageUrl(req, enhancedRow.thumbnail_url);
             }
