@@ -21,7 +21,7 @@ transporter.verify((err) => {
 router.get('/users-get', async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT id, name, email, role, status, created_at as joined_at, 
+            SELECT id, CONCAT_WS(' ', first_name, last_name) AS name, email, role, status, created_at as joined_at, 
             TO_CHAR(updated_at, 'YYYY-MM-DD HH24:MI') as last_login 
             FROM users 
             ORDER BY created_at DESC
@@ -58,7 +58,7 @@ router.post('/mass-email', async (req, res) => {
     try {
 
         let sql = `
-      SELECT name, email
+      SELECT CONCAT_WS(' ', first_name, last_name) AS name, email
       FROM users
       WHERE 1=1
     `;

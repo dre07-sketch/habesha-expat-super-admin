@@ -235,7 +235,19 @@ router.get('/engagement', async (req, res) => {
         const totals = await query(`
       SELECT 
         (SELECT COUNT(*) FROM likes) AS total_likes,
-        (SELECT COUNT(*) FROM comments) AS total_comments
+        (SELECT COUNT(*) FROM comments) AS total_comments,
+        (SELECT COALESCE(SUM(views), 0) FROM articles) AS total_article_views,
+        (SELECT COALESCE(SUM(views), 0) FROM videos) AS total_video_views,
+        (SELECT COUNT(*) FROM podcasts) AS total_podcasts,
+        (SELECT COUNT(*) FROM events) AS total_events,
+        (SELECT COUNT(*) FROM businesses) AS total_businesses,
+        (SELECT COUNT(*) FROM business_reviews) AS total_reviews,
+        (SELECT COUNT(*) FROM likes WHERE article_id IS NOT NULL) AS article_likes,
+        (SELECT COUNT(*) FROM comments WHERE article_id IS NOT NULL) AS article_comments,
+        (SELECT COUNT(*) FROM likes WHERE video_id IS NOT NULL) AS video_likes,
+        (SELECT COUNT(*) FROM comments WHERE video_id IS NOT NULL) AS video_comments,
+        (SELECT COUNT(*) FROM likes WHERE podcast_id IS NOT NULL) AS podcast_likes,
+        (SELECT COUNT(*) FROM comments WHERE podcast_id IS NOT NULL) AS podcast_comments
     `);
 
         const { getImageUrl } = require('../utils/imageHelper');
@@ -308,7 +320,6 @@ router.get('/business', async (req, res) => {
             FROM current_counts c
             LEFT JOIN previous_counts pc ON c.category = pc.category
             ORDER BY c.count DESC
-            LIMIT 8
         `);
 
         res.json({
@@ -347,7 +358,7 @@ router.get('/articles/recent', async (req, res) => {
       LIMIT $1
     `;
         const { getImageUrl } = require('../utils/imageHelper');
-
+        const { rows } = await query(sql, [limit]);
         const processedRows = rows.map(row => ({
             ...row,
             image_url: getImageUrl(req, row.image_url)

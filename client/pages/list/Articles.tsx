@@ -232,7 +232,7 @@ const Articles: React.FC = () => {
     }
   };
 
-  const handleOpenArticle = (article: Article) => {
+  const handleOpenArticle = async (article: Article) => {
     setSelectedArticle(article);
     setActiveTab('content');
     setStatusUpdateError(null);
@@ -241,12 +241,41 @@ const Articles: React.FC = () => {
     setComments([]);
     setLikes([]);
     setEngagementLoading(true);
-    Promise.all([
-      fetchComments(article.id.toString()),
-      fetchLikes(article.id.toString()),
-    ]).finally(() => {
-      setEngagementLoading(false);
-    });
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/api/articles/articles/${article.id}/full`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch full article data');
+      
+      const data = await response.json();
+      if (data.success) {
+        setComments(data.comments || []);
+        setLikes(data.likes || []);
+        
+        // Update selected article with fresh stats from database
+        setSelectedArticle(prev => prev ? {
+          ...prev,
+          views: data.article.views || 0,
+          likes: data.likes.length,
+          comments: data.comments.length
+        } : null);
+      }
+    } catch (err) {
+      console.error('Error fetching full article data:', err);
+      // Fallback to individual fetches if full endpoint fails (though it shouldn't)
+      Promise.all([
+        fetchComments(article.id.toString()),
+        fetchLikes(article.id.toString()),
+      ]);
+    } finally {
+      setEngagementLoading(true); // Keep loading state until we decide to hide it
+      setTimeout(() => setEngagementLoading(false), 300); // Slight delay for smoother transition
+    }
   };
 
   const filteredArticles = articles.filter(article =>
@@ -527,6 +556,16 @@ const Articles: React.FC = () => {
 
                 {activeTab === 'engagement' && (
                   <div className="animate-in slide-in-from-bottom-2 fade-in duration-300">
+                    <div className="flex flex-col md:flex-row items-center gap-6 mb-10 p-6 bg-slate-50 dark:bg-slate-800/40 rounded-3xl border border-slate-200 dark:border-slate-800">
+                      <div className="w-40 h-24 rounded-2xl overflow-hidden shadow-lg border-2 border-white dark:border-slate-700 shrink-0">
+                        <ArticleImage src={selectedArticle.image} alt={selectedArticle.title} className="w-full h-full object-cover" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-black text-slate-900 dark:text-white mb-1">Engagement Analytics</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Live interaction metrics for: <span className="font-bold text-blue-500">{selectedArticle.title}</span></p>
+                      </div>
+                    </div>
+
                     {engagementLoading && (
                       <div className="flex justify-center items-center py-12">
                         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>

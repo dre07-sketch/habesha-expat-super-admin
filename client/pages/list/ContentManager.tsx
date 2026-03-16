@@ -21,6 +21,8 @@ export interface ContentItem {
   date: string;
   thumbnail_url: string | null;
   media_url: string | null;
+  video_url?: string | null;
+  audio_url?: string | null;
   parent_id?: number; // Added to link Reviews to Businesses
   likes?: number;
   comments?: number;

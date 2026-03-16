@@ -4,11 +4,11 @@ const { Pool } = require('pg');
 
 // Initialize PostgreSQL Pool
 const pgPool = new Pool({
-    host: 'localhost',          // your PostgreSQL host
-    user: 'postgres',           // your PostgreSQL username
-    password: '1234',       // your PostgreSQL password
-    database: 'habesha-expat',  // your database name
-    port: 5432,                 // default PostgreSQL port
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT,
     max: 10,                    // max connections in the pool
     idleTimeoutMillis: 30000,   // close idle clients after 30 seconds
 });

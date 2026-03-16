@@ -66,7 +66,9 @@ router.get('/contents', async (req, res) => {
         v.views, 
         v.upload_date AS date, 
         v.thumbnail_url, 
-        v.video_file_url AS media_url,
+        v.video_url,
+        NULL AS audio_url,
+        v.video_url AS media_url,
         NULL::integer AS parent_id,
         NULL::numeric AS rating,
         NULL AS comment,
@@ -102,8 +104,10 @@ router.get('/contents', async (req, res) => {
         p.status, 
         0 AS views, 
         p.created_at AS date, 
-        p.cover_image_url AS thumbnail_url, 
-        p.audio_file_url AS media_url,
+        p.thumbnail_url, 
+        NULL AS video_url,
+        p.audio_url,
+        p.audio_url AS media_url,
         NULL::integer AS parent_id,
         NULL::numeric AS rating,
         NULL AS comment,
@@ -140,6 +144,8 @@ router.get('/contents', async (req, res) => {
         0 AS views, 
         b.created_at AS date, 
         b.image_url AS thumbnail_url, 
+        NULL AS video_url,
+        NULL AS audio_url,
         NULL AS media_url,
         NULL::integer AS parent_id,
         b.rating,
@@ -160,11 +166,13 @@ router.get('/contents', async (req, res) => {
         r.id, 
         NULL AS title,
         'Review' AS type, 
-        u.name AS author, 
+        CONCAT_WS(' ', u.first_name, u.last_name) AS author, 
         'visible' AS status, 
         0 AS views, 
         r.created_at AS date, 
         NULL AS thumbnail_url, 
+        NULL AS video_url,
+        NULL AS audio_url,
         NULL AS media_url,
         r.business_id AS parent_id,
         r.rating,
@@ -198,6 +206,12 @@ router.get('/contents', async (req, res) => {
 
             if (enhancedRow.thumbnail_url) {
                 enhancedRow.thumbnail_url = getImageUrl(req, enhancedRow.thumbnail_url);
+            }
+            if (enhancedRow.video_url) {
+                enhancedRow.video_url = getImageUrl(req, enhancedRow.video_url);
+            }
+            if (enhancedRow.audio_url) {
+                enhancedRow.audio_url = getImageUrl(req, enhancedRow.audio_url);
             }
             if (enhancedRow.media_url) {
                 enhancedRow.media_url = getImageUrl(req, enhancedRow.media_url);
@@ -251,6 +265,23 @@ router.get('/contents/:type/:id', async (req, res) => {
         }
 
         const contentData = contentResult.rows[0];
+        
+        // Process media URLs for the single view
+        if (contentData.thumbnail_url) contentData.thumbnail_url = getImageUrl(req, contentData.thumbnail_url);
+        if (contentData.image_url) contentData.thumbnail_url = getImageUrl(req, contentData.image_url); // Alias for businesses
+        
+        // Map table-specific media fields to media_url for the UI
+        if (typeLower === 'video') {
+            if (contentData.video_url) contentData.video_url = getImageUrl(req, contentData.video_url);
+            contentData.media_url = contentData.video_url;
+        } else if (typeLower === 'podcast') {
+            if (contentData.audio_url) contentData.audio_url = getImageUrl(req, contentData.audio_url);
+            contentData.media_url = contentData.audio_url;
+        } else if (typeLower === 'article') {
+            if (contentData.video_url) contentData.video_url = getImageUrl(req, contentData.video_url);
+            contentData.media_url = contentData.video_url; // Articles might have video_url
+        }
+
         let comments = [];
         let likes = [];
 
@@ -259,19 +290,18 @@ router.get('/contents/:type/:id', async (req, res) => {
             // For Business: Fetch Reviews instead of standard comments
             const reviewsResult = await pool.query(`
                 SELECT r.id, r.comment as text, r.rating, to_char(r.created_at, 'Mon DD, YYYY HH12:MI AM') as date, 
-                       u.name as user, u.avatar_url as avatar
+                       CONCAT_WS(' ', u.first_name, u.last_name) as user, u.avatar_url as avatar
                 FROM business_reviews r
                 LEFT JOIN users u ON r.user_id = u.id
                 WHERE r.business_id = $1
                 ORDER BY r.created_at DESC
             `, [id]);
             comments = reviewsResult.rows;
-            // Businesses don't have a likes table in the schema provided, leaving empty
         } else {
             // For Content: Fetch Comments
             const commentsResult = await pool.query(`
                 SELECT c.id, c.content as text, to_char(c.created_at, 'Mon DD, YYYY HH12:MI AM') as date, 
-                       u.name as user, u.avatar_url as avatar
+                       CONCAT_WS(' ', u.first_name, u.last_name) as user, u.avatar_url as avatar
                 FROM comments c
                 LEFT JOIN users u ON c.user_id = u.id
                 WHERE c.${typeIdColumn} = $1
@@ -281,7 +311,7 @@ router.get('/contents/:type/:id', async (req, res) => {
 
             // Fetch Likes
             const likesResult = await pool.query(`
-                SELECT l.created_at, u.name as user, u.avatar_url as avatar, u.role
+                SELECT l.created_at, CONCAT_WS(' ', u.first_name, u.last_name) as user, u.avatar_url as avatar, u.role
                 FROM likes l
                 LEFT JOIN users u ON l.user_id = u.id
                 WHERE l.${typeIdColumn} = $1

@@ -198,7 +198,7 @@ router.get('/articles/:id/comments', async (req, res) => {
                 c.id,
                 c.content,
                 c.created_at,
-                u.name AS user_name
+                CONCAT_WS(' ', u.first_name, u.last_name) AS user_name
             FROM comments c
             INNER JOIN users u ON u.id = c.user_id
             WHERE c.article_id = $1
@@ -229,7 +229,7 @@ router.get('/articles/:id/likes', async (req, res) => {
             SELECT 
                 l.id,
                 l.created_at,
-                u.name AS user_name
+                CONCAT_WS(' ', u.first_name, u.last_name) AS user_name
             FROM likes l
             INNER JOIN users u ON u.id = l.user_id
             WHERE l.article_id = $1
@@ -268,7 +268,7 @@ router.get('/articles/:id/full', async (req, res) => {
                 c.id,
                 c.content,
                 c.created_at,
-                u.name AS user_name
+                CONCAT_WS(' ', u.first_name, u.last_name) AS user_name
             FROM comments c
             INNER JOIN users u ON u.id = c.user_id
             WHERE c.article_id = $1
@@ -279,7 +279,7 @@ router.get('/articles/:id/full', async (req, res) => {
             SELECT 
                 l.id,
                 l.created_at,
-                u.name AS user_name
+                CONCAT_WS(' ', u.first_name, u.last_name) AS user_name
             FROM likes l
             INNER JOIN users u ON u.id = l.user_id
             WHERE l.article_id = $1

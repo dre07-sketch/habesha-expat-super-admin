@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { X, MapPin, Calendar, Eye, User, ShieldCheck, Video, Star, MessageSquare, Heart, FileText, Mic, ThumbsUp, Send, Play } from 'lucide-react';
+import { X, MapPin, Calendar, Eye, User, ShieldCheck, Video, Star, MessageSquare, Heart, FileText, Mic, ThumbsUp, Send, Play, AlertCircle } from 'lucide-react';
 import { ContentItem, ContentType, Status } from '../types';
 
 interface ContentModalProps {
@@ -31,10 +30,13 @@ const ContentModal: React.FC<ContentModalProps> = ({ isOpen, onClose, item, revi
     const [activeTab, setActiveTab] = useState<'details' | 'comments' | 'likes'>('details');
     const [commentsList, setCommentsList] = useState<any[]>([]);
     const [likesList, setLikesList] = useState<any[]>([]);
+    const [contentDetails, setContentDetails] = useState<any>(null);
     const [loading, setLoading] = useState(false);
 
     React.useEffect(() => {
         if (isOpen && item) {
+            setContentDetails(null);
+            setActiveTab('details');
             fetchDetails();
         }
     }, [isOpen, item]);
@@ -51,6 +53,7 @@ const ContentModal: React.FC<ContentModalProps> = ({ isOpen, onClose, item, revi
             });
             if (response.ok) {
                 const data = await response.json();
+                setContentDetails(data);
                 setCommentsList(data.commentsList || []);
                 setLikesList(data.likesList || []);
             }
@@ -63,8 +66,118 @@ const ContentModal: React.FC<ContentModalProps> = ({ isOpen, onClose, item, revi
 
     if (!isOpen || !item) return null;
 
-    const thumbnailUrl = item.thumbnailUrl || item.thumbnail_url;
-    const mediaUrl = item.mediaUrl || item.media_url;
+    const displayData = contentDetails || item;
+    const thumbnailUrl = displayData.thumbnail_url || displayData.thumbnailUrl || displayData.image_url;
+    const mediaUrl = displayData.media_url || displayData.video_url || displayData.audio_url;
+
+    const getYouTubeId = (url: string) => {
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+        const match = url?.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : null;
+    };
+
+    const getSpotifyEmbedUrl = (url: string) => {
+        if (!url) return null;
+        if (url.includes('spotify.com')) {
+            return url.replace('open.spotify.com', 'open.spotify.com/embed');
+        }
+        return null;
+    };
+
+    const renderMedia = () => {
+        if (!mediaUrl) {
+            return (
+                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-200 dark:bg-slate-800 text-slate-400">
+                    <AlertCircle size={48} className="mb-2" />
+                    <p className="text-sm font-medium">No media file available</p>
+                </div>
+            );
+        }
+
+        const ytId = getYouTubeId(mediaUrl);
+        const spotifyUrl = getSpotifyEmbedUrl(mediaUrl);
+
+        if (item.type === ContentType.VIDEO) {
+            if (ytId) {
+                return (
+                    <iframe
+                        className="w-full h-full border-0"
+                        src={`https://www.youtube.com/embed/${ytId}`}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                    ></iframe>
+                );
+            }
+            return (
+                <video
+                    src={mediaUrl}
+                    poster={thumbnailUrl}
+                    controls
+                    className="w-full h-full object-cover"
+                />
+            );
+        }
+
+        if (item.type === ContentType.PODCAST) {
+            // YouTube link in a podcast (e.g. recorded podcast on YouTube)
+            if (ytId) {
+                return (
+                    <iframe
+                        className="w-full h-full border-0"
+                        src={`https://www.youtube.com/embed/${ytId}`}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                    ></iframe>
+                );
+            }
+            // Spotify embed
+            if (spotifyUrl) {
+                return (
+                    <iframe
+                        src={spotifyUrl}
+                        className="w-full h-full border-0"
+                        allow="encrypted-media"
+                    ></iframe>
+                );
+            }
+            // Uploaded audio file
+            return (
+                <div className="w-full h-full relative">
+                    <img
+                        src={thumbnailUrl || `https://picsum.photos/seed/${item.id}/400/300`}
+                        alt={item.title}
+                        className="w-full h-full object-cover opacity-80"
+                    />
+                    <div className="absolute bottom-0 left-0 w-full bg-black/60 backdrop-blur-md p-2">
+                        <audio controls className="w-full h-8 custom-audio">
+                            <source src={mediaUrl} type="audio/mpeg" />
+                            Your browser does not support the audio element.
+                        </audio>
+                    </div>
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                        <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center ring-1 ring-white/50 shadow-xl">
+                            <Mic size={32} className="text-white" />
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        return (
+            <>
+                <img
+                    src={thumbnailUrl || `https://picsum.photos/seed/${item.id}/400/300`}
+                    alt={item.title}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors pointer-events-none">
+                    <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center ring-1 ring-white/50 shadow-xl">
+                        {renderTypeIcon()}
+                    </div>
+                </div>
+            </>
+        );
+    };
 
     const renderTypeIcon = () => {
         switch (item.type) {
@@ -141,46 +254,7 @@ const ContentModal: React.FC<ContentModalProps> = ({ isOpen, onClose, item, revi
                             {/* Left Column - Media */}
                             <div className="col-span-1 md:col-span-5 space-y-4">
                                 <div className="aspect-video w-full bg-slate-100 dark:bg-slate-800 rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 relative group shadow-lg">
-                                    {item.type === ContentType.VIDEO ? (
-                                        <video
-                                            src={mediaUrl}
-                                            poster={thumbnailUrl}
-                                            controls
-                                            className="w-full h-full object-cover"
-                                        />
-                                    ) : item.type === ContentType.PODCAST ? (
-                                        <div className="w-full h-full relative">
-                                            <img
-                                                src={thumbnailUrl || `https://picsum.photos/seed/${item.id}/400/300`}
-                                                alt={item.title}
-                                                className="w-full h-full object-cover opacity-80"
-                                            />
-                                            <div className="absolute bottom-0 left-0 w-full bg-black/60 backdrop-blur-md p-2">
-                                                <audio controls className="w-full h-8 custom-audio">
-                                                    <source src={mediaUrl} type="audio/mpeg" />
-                                                    Your browser does not support the audio element.
-                                                </audio>
-                                            </div>
-                                            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                                                <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center ring-1 ring-white/50 shadow-xl">
-                                                    <Mic size={32} className="text-white" />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <img
-                                                src={thumbnailUrl || `https://picsum.photos/seed/${item.id}/400/300`}
-                                                alt={item.title}
-                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                            />
-                                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors pointer-events-none">
-                                                <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center ring-1 ring-white/50 shadow-xl">
-                                                    {renderTypeIcon()}
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
+                                    {renderMedia()}
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">
@@ -211,17 +285,40 @@ const ContentModal: React.FC<ContentModalProps> = ({ isOpen, onClose, item, revi
                                         <span className="text-slate-500 dark:text-slate-400 flex items-center gap-2 font-medium"><User size={16} /> Author</span>
                                         <span className="text-slate-800 dark:text-white font-medium truncate max-w-[120px]">{item.author}</span>
                                     </div>
+                                    {mediaUrl && (
+                                        <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-white/5 bg-white/50 dark:bg-white/5">
+                                            <span className="text-slate-500 dark:text-slate-400 flex items-center gap-2 font-medium">
+                                                {item.type === ContentType.PODCAST ? <Mic size={16} /> : <Video size={16} />}
+                                                Media File
+                                            </span>
+                                            <a
+                                                href={mediaUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-blue-500 hover:text-blue-400 text-xs font-medium truncate max-w-[120px] underline underline-offset-2"
+                                                title={mediaUrl}
+                                            >
+                                                Open link ↗
+                                            </a>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
                             {/* Right Column - Info */}
                             <div className="col-span-1 md:col-span-7 space-y-6 flex flex-col h-full">
 
-                                <div className="bg-white dark:bg-white/5 p-5 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm flex-1">
+                                <div className="bg-white dark:bg-white/5 p-5 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm flex-1 overflow-y-auto max-h-[300px]">
                                     <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 mb-3 uppercase tracking-wider">Content Description</h3>
-                                    <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-sm">
-                                        {item.description}
-                                    </p>
+                                    {loading ? (
+                                        <div className="flex justify-center py-4">
+                                            <div className="animate-pulse h-4 bg-slate-200 dark:bg-slate-800 rounded w-full"></div>
+                                        </div>
+                                    ) : (
+                                        <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-sm whitespace-pre-wrap">
+                                            {displayData.description || 'No description available for this content.'}
+                                        </p>
+                                    )}
                                 </div>
 
 

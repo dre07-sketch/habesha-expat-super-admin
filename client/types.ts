@@ -75,6 +75,8 @@ export interface ContentItem {
   thumbnail_url?: string;
   mediaUrl?: string;
   media_url?: string;
+  video_url?: string;
+  audio_url?: string;
   likes?: number;
   comments?: number;
   // Business specific

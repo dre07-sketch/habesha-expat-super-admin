@@ -41,7 +41,7 @@ const App: React.FC = () => {
             <Sidebar onLogout={handleLogout} toggleTheme={toggleTheme} isDark={isDark} />
             {/* Removed z-0 to allow fixed children (modals) to stack above sidebar */}
             <main className="flex-1 ml-64 p-8 min-h-screen bg-slate-50/50 dark:bg-slate-900 transition-colors duration-300 relative">
-              <div className="max-w-7xl mx-auto">
+              <div className="w-full">
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/articles" element={<Articles />} />

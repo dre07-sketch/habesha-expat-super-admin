@@ -113,10 +113,9 @@ router.put('/ads/:id/status', async (req, res) => {
 router.get('/subscribers-get', async (req, res) => {
     try {
         const sql = `
-            SELECT id, email, name, status, source, plan, 
-            joined_date as joinedDate 
-            FROM subscribers 
-            ORDER BY joined_date DESC
+            SELECT id, email, subscribed_at, is_active
+            FROM newsletter_signups
+            ORDER BY subscribed_at DESC
         `;
         const { rows } = await query(sql);
         res.json(rows);
@@ -129,17 +128,23 @@ router.get('/subscribers-get', async (req, res) => {
 router.get('/newsletters-get', async (req, res) => {
     try {
         const sql = `
-            SELECT id, subject, recipient_segment as segment, content, 
-            image_url as image, status, sent_date as sentDate, 
-            recipient_count as recipientCount, open_rate as openRate, 
-            click_rate as clickRate 
-            FROM newsletters 
-            ORDER BY created_at DESC
+            SELECT 
+                id,
+                subject,
+                content,
+                image_url,
+                recipient_segment,
+                status,
+                sent_date,
+                recipient_count,
+                created_at
+            FROM newsletters
+            ORDER BY COALESCE(sent_date, created_at) DESC
         `;
         const { rows } = await query(sql);
         const processedRows = rows.map(row => {
-            if (row.image) {
-                row.image = getImageUrl(req, row.image);
+            if (row.image_url) {
+                row.image_url = getImageUrl(req, row.image_url);
             }
             return row;
         });

@@ -90,7 +90,9 @@ const Marketing: React.FC = () => {
     };
 
     // 3. Filtering
-    const filteredSubscribers = subscribers.filter(s => s.email.toLowerCase().includes(searchTerm.toLowerCase()));
+    const filteredSubscribers = subscribers.filter(s =>
+        s.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
     const filteredAds = ads.filter(a => a.title.toLowerCase().includes(searchTerm.toLowerCase()));
     const filteredHistory = newsletters.filter(n => n.subject.toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -138,38 +140,65 @@ const Marketing: React.FC = () => {
                 <div className="space-y-4 animate-fade-in">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="bg-white dark:bg-white/5 p-6 rounded-2xl border border-slate-200 dark:border-white/10">
-                            <p className="text-slate-500 dark:text-slate-400 text-sm">Total Audience</p>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm">Total Subscribers</p>
                             <p className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{subscribers.length.toLocaleString()}</p>
                         </div>
-
+                        <div className="bg-white dark:bg-white/5 p-6 rounded-2xl border border-slate-200 dark:border-white/10">
+                            <p className="text-slate-500 dark:text-slate-400 text-sm">Active</p>
+                            <p className="text-2xl font-bold text-emerald-500 mt-1">{subscribers.filter(s => s.is_active).length.toLocaleString()}</p>
+                        </div>
+                        <div className="bg-white dark:bg-white/5 p-6 rounded-2xl border border-slate-200 dark:border-white/10">
+                            <p className="text-slate-500 dark:text-slate-400 text-sm">Unsubscribed</p>
+                            <p className="text-2xl font-bold text-slate-400 mt-1">{subscribers.filter(s => !s.is_active).length.toLocaleString()}</p>
+                        </div>
                     </div>
 
                     <div className="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                                    <th className="p-4">Subscriber</th>
-                                    <th className="p-4">Plan</th>
-                                    <th className="p-4">Joined Date</th>
+                                    <th className="p-4">#</th>
+                                    <th className="p-4">Email</th>
+                                    <th className="p-4">Subscribed Date</th>
                                     <th className="p-4">Status</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200 dark:divide-white/5 text-sm">
-                                {filteredSubscribers.map(sub => (
-                                    <tr key={sub.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                                        <td className="p-4">
-                                            <div className="font-medium text-slate-800 dark:text-white">{sub.name || 'Anonymous'}</div>
-                                            <div className="text-xs text-slate-500">{sub.email}</div>
-                                        </td>
-                                        <td className="p-4 text-slate-500 dark:text-slate-400 capitalize">{sub.plan}</td>
-                                        <td className="p-4 text-slate-500 dark:text-slate-400">{new Date(sub.joinedDate).toLocaleDateString()}</td>
-                                        <td className="p-4">
-                                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${sub.status === 'active' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-slate-500/10 text-slate-500'}`}>
-                                                {sub.status}
-                                            </span>
+                                {filteredSubscribers.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={4} className="p-8 text-center text-slate-400">
+                                            No subscribers found.
                                         </td>
                                     </tr>
-                                ))}
+                                ) : (
+                                    filteredSubscribers.map((sub, index) => (
+                                        <tr key={sub.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                                            <td className="p-4 text-slate-400 text-xs font-mono">{index + 1}</td>
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                                        {sub.email?.[0]?.toUpperCase() || '?'}
+                                                    </div>
+                                                    <span className="font-medium text-slate-800 dark:text-white">{sub.email}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-4 text-slate-500 dark:text-slate-400">
+                                                {sub.subscribed_at
+                                                    ? new Date(sub.subscribed_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                                                    : 'N/A'}
+                                            </td>
+                                            <td className="p-4">
+                                                <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
+                                                    sub.is_active
+                                                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                                        : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
+                                                }`}>
+                                                    {sub.is_active ? 'Active' : 'Unsubscribed'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -200,29 +229,67 @@ const Marketing: React.FC = () => {
 
             {/* SENT HISTORY TAB */}
             {activeTab === 'history' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in">
-                    {filteredHistory.map(news => (
-                        <div
-                            key={news.id}
-                            onClick={() => setSelectedNewsletter(news)}
-                            className="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-5 hover:border-blue-500 transition-all cursor-pointer group"
-                        >
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="p-2 bg-blue-500/10 rounded-lg text-blue-600">
-                                    <Mail size={20} />
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(news.sentDate).toDateString()}</p>
-                                    <p className="text-xs text-emerald-500 font-bold">{news.openRate}% Open Rate</p>
-                                </div>
-                            </div>
-                            <h3 className="font-bold text-slate-800 dark:text-white mb-2 group-hover:text-blue-500 transition-colors line-clamp-1">{news.subject}</h3>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 leading-relaxed">{news.content}</p>
-                            <div className="flex items-center text-blue-600 text-xs font-bold uppercase tracking-wider">
-                                Preview Newsletter <ChevronRight size={14} className="ml-1" />
-                            </div>
+                <div className="space-y-4 animate-fade-in">
+                    {/* Stats */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-white dark:bg-white/5 p-6 rounded-2xl border border-slate-200 dark:border-white/10">
+                            <p className="text-slate-500 dark:text-slate-400 text-sm">Total Sent</p>
+                            <p className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{newsletters.filter(n => n.status === 'sent').length.toLocaleString()}</p>
                         </div>
-                    ))}
+                        <div className="bg-white dark:bg-white/5 p-6 rounded-2xl border border-slate-200 dark:border-white/10">
+                            <p className="text-slate-500 dark:text-slate-400 text-sm">Total Recipients</p>
+                            <p className="text-2xl font-bold text-blue-500 mt-1">{newsletters.reduce((sum, n) => sum + (n.recipient_count || 0), 0).toLocaleString()}</p>
+                        </div>
+                        <div className="bg-white dark:bg-white/5 p-6 rounded-2xl border border-slate-200 dark:border-white/10">
+                            <p className="text-slate-500 dark:text-slate-400 text-sm">Drafts</p>
+                            <p className="text-2xl font-bold text-amber-500 mt-1">{newsletters.filter(n => n.status !== 'sent').length.toLocaleString()}</p>
+                        </div>
+                    </div>
+
+                    {/* Cards Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {filteredHistory.length === 0 ? (
+                            <div className="col-span-2 p-8 text-center text-slate-400">
+                                No newsletter history found.
+                            </div>
+                        ) : (
+                            filteredHistory.map(news => (
+                                <div
+                                    key={news.id}
+                                    onClick={() => setSelectedNewsletter(news)}
+                                    className="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-5 hover:border-blue-500 transition-all cursor-pointer group"
+                                >
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="p-2 bg-blue-500/10 rounded-lg text-blue-600">
+                                            <Mail size={20} />
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                                {news.sent_date
+                                                    ? new Date(news.sent_date).toDateString()
+                                                    : new Date(news.created_at).toDateString()}
+                                            </p>
+                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                                                news.status === 'sent'
+                                                    ? 'bg-emerald-500/10 text-emerald-600'
+                                                    : 'bg-amber-500/10 text-amber-600'
+                                            }`}>{news.status || 'Draft'}</span>
+                                        </div>
+                                    </div>
+                                    <h3 className="font-bold text-slate-800 dark:text-white mb-2 group-hover:text-blue-500 transition-colors line-clamp-1">{news.subject}</h3>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 leading-relaxed">{news.content}</p>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs text-slate-400">
+                                            {news.recipient_count ? `${news.recipient_count.toLocaleString()} recipients` : 'No recipients yet'}
+                                        </span>
+                                        <div className="flex items-center text-blue-600 text-xs font-bold uppercase tracking-wider">
+                                            Preview <ChevronRight size={14} className="ml-1" />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -238,9 +305,16 @@ const Marketing: React.FC = () => {
                                 <div className="flex flex-col">
                                     <div className="flex items-center gap-3 mb-2">
                                         <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
-                                        <span className="text-xs font-bold tracking-widest text-slate-400 uppercase">SENT TO {selectedNewsletter.recipientCount} SUBSCRIBERS</span>
+                                        <span className="text-xs font-bold tracking-widest text-slate-400 uppercase">
+                                            {selectedNewsletter.recipient_count
+                                                ? `SENT TO ${selectedNewsletter.recipient_count.toLocaleString()} SUBSCRIBERS`
+                                                : 'DRAFT — NOT SENT YET'}
+                                        </span>
                                     </div>
                                     <h2 className="text-2xl font-extrabold text-slate-800 dark:text-white tracking-tight line-clamp-1">{selectedNewsletter.subject}</h2>
+                                    {selectedNewsletter.recipient_segment && (
+                                        <p className="text-xs text-slate-400 mt-1">Segment: <span className="font-semibold capitalize">{selectedNewsletter.recipient_segment}</span></p>
+                                    )}
                                 </div>
                                 <button onClick={() => setSelectedNewsletter(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full transition-colors">
                                     <X className="text-slate-500" />
@@ -265,9 +339,9 @@ const Marketing: React.FC = () => {
 
                             <div className="flex-1 overflow-y-auto p-6 lg:p-10 flex justify-center">
                                 <div className="bg-white dark:bg-slate-800 w-full max-w-4xl shadow-2xl rounded-xl overflow-hidden border border-slate-200/60 dark:border-slate-700 h-fit">
-                                    {selectedNewsletter.image && (
+                                    {selectedNewsletter.image_url && (
                                         <div className="w-full h-72 sm:h-96 overflow-hidden relative group">
-                                            <img src={selectedNewsletter.image} alt="Header" className="w-full h-full object-cover" />
+                                            <img src={selectedNewsletter.image_url} alt="Header" className="w-full h-full object-cover" />
                                         </div>
                                     )}
 

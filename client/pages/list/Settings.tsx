@@ -31,7 +31,7 @@ const Settings: React.FC = () => {
 
     // Data State
     const [admins, setAdmins] = useState<AdminUser[]>([]);
-    const [siteStatus, setSiteStatus] = useState({ public: true, admin: true });
+    const [siteStatus, setSiteStatus] = useState({ public: true, admin: true, lounge: true });
 
     // Credential State
     const [currentAdminEmail, setCurrentAdminEmail] = useState('');
@@ -102,10 +102,12 @@ const Settings: React.FC = () => {
                         // Map DB 'activated'/'deactivated' to boolean
                         const publicSite = statusData.find((s: any) => s.service_name === 'Public Website');
                         const adminPanel = statusData.find((s: any) => s.service_name === 'Admin Panel');
+                        const lounge = statusData.find((s: any) => s.id === 3 || s.service_name === 'Lounge');
 
                         setSiteStatus({
                             public: publicSite?.status === 'activated',
-                            admin: adminPanel?.status === 'activated'
+                            admin: adminPanel?.status === 'activated',
+                            lounge: lounge ? lounge.status === 'activated' : true
                         });
                     } else {
                         console.error("Status data is not an array:", statusData);
@@ -129,12 +131,15 @@ const Settings: React.FC = () => {
     }, []);
 
     // --- 2. System Kill Switch Logic ---
-    const handleKillSwitch = async (target: 'public' | 'admin') => {
+    const handleKillSwitch = async (target: 'public' | 'admin' | 'lounge') => {
         const isOnline = siteStatus[target];
         const action = isOnline ? 'SHUT DOWN' : 'RESTORE';
-        const dbStatus = isOnline ? 'deactivated' : 'activated'; // Value for DB
-        const endpoint = target === 'public' ? '/system-status/website' : '/system-status/admin';
-
+        const dbStatus = isOnline ? 'deactivated' : 'activated';
+        const endpoint = target === 'public'
+            ? '/system-status/website'
+            : target === 'admin'
+                ? '/system-status/admin'
+                : '/system-status/lounge';
 
         if (confirm) {
             try {
@@ -514,7 +519,7 @@ const Settings: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
 
                         {/* Public Site Control */}
                         <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm flex items-center justify-between hover:bg-white/10 transition-all group/card">
@@ -529,7 +534,6 @@ const Settings: React.FC = () => {
                                     {siteStatus.public ? 'SYSTEM ONLINE' : 'SYSTEM OFFLINE'}
                                 </div>
                             </div>
-
                             <button
                                 onClick={() => handleKillSwitch('public')}
                                 className={`relative w-24 h-12 rounded-full p-1 transition-all duration-500 ease-in-out shadow-inner cursor-pointer ${siteStatus.public
@@ -538,8 +542,6 @@ const Settings: React.FC = () => {
                                     }`}
                             >
                                 <div className={`absolute inset-0 rounded-full transition-opacity duration-500 ${siteStatus.public ? 'opacity-0' : 'opacity-100 shadow-[0_0_20px_rgba(239,68,68,0.4)]'}`}></div>
-
-                                {/* The Sliding Knob */}
                                 <div className={`w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all duration-500 transform ${siteStatus.public
                                     ? 'translate-x-12 bg-gradient-to-br from-emerald-400 to-emerald-600 border border-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.6)]'
                                     : 'translate-x-0 bg-gradient-to-br from-red-500 to-red-700 border border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.6)]'
@@ -562,7 +564,6 @@ const Settings: React.FC = () => {
                                     {siteStatus.admin ? 'SYSTEM ONLINE' : 'SYSTEM OFFLINE'}
                                 </div>
                             </div>
-
                             <button
                                 onClick={() => handleKillSwitch('admin')}
                                 className={`relative w-24 h-12 rounded-full p-1 transition-all duration-500 ease-in-out shadow-inner cursor-pointer ${siteStatus.admin
@@ -571,9 +572,37 @@ const Settings: React.FC = () => {
                                     }`}
                             >
                                 <div className={`absolute inset-0 rounded-full transition-opacity duration-500 ${siteStatus.admin ? 'opacity-0' : 'opacity-100 shadow-[0_0_20px_rgba(239,68,68,0.4)]'}`}></div>
-
-                                {/* The Sliding Knob */}
                                 <div className={`w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all duration-500 transform ${siteStatus.admin
+                                    ? 'translate-x-12 bg-gradient-to-br from-emerald-400 to-emerald-600 border border-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.6)]'
+                                    : 'translate-x-0 bg-gradient-to-br from-red-500 to-red-700 border border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.6)]'
+                                    }`}>
+                                    <Power size={18} className="text-white drop-shadow-md" />
+                                </div>
+                            </button>
+                        </div>
+
+                        {/* Lounge Control */}
+                        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm flex items-center justify-between hover:bg-white/10 transition-all group/card">
+                            <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <LoungeIcon active={siteStatus.lounge} />
+                                    <h3 className="text-lg font-bold text-white">Lounge</h3>
+                                </div>
+                                <p className="text-sm text-slate-400 max-w-[200px]">Controls access to the Community Lounge</p>
+                                <div className={`mt-4 text-xs font-mono font-bold py-1 px-3 rounded-lg inline-flex items-center gap-2 border ${siteStatus.lounge ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
+                                    <span className={`w-2 h-2 rounded-full ${siteStatus.lounge ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></span>
+                                    {siteStatus.lounge ? 'SYSTEM ONLINE' : 'SYSTEM OFFLINE'}
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => handleKillSwitch('lounge')}
+                                className={`relative w-24 h-12 rounded-full p-1 transition-all duration-500 ease-in-out shadow-inner cursor-pointer ${siteStatus.lounge
+                                    ? 'bg-slate-800 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)] border border-slate-600'
+                                    : 'bg-slate-900 shadow-[inset_0_2px_4px_rgba(0,0,0,0.9)] border border-red-900/50'
+                                    }`}
+                            >
+                                <div className={`absolute inset-0 rounded-full transition-opacity duration-500 ${siteStatus.lounge ? 'opacity-0' : 'opacity-100 shadow-[0_0_20px_rgba(239,68,68,0.4)]'}`}></div>
+                                <div className={`w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all duration-500 transform ${siteStatus.lounge
                                     ? 'translate-x-12 bg-gradient-to-br from-emerald-400 to-emerald-600 border border-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.6)]'
                                     : 'translate-x-0 bg-gradient-to-br from-red-500 to-red-700 border border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.6)]'
                                     }`}>
@@ -702,6 +731,23 @@ const ShieldAlert = ({ active }: { active: boolean }) => (
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
         <line x1="12" y1="8" x2="12" y2="12"></line>
         <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+);
+
+const LoungeIcon = ({ active }: { active: boolean }) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={active ? "text-emerald-500" : "text-red-500"}
+    >
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
     </svg>
 );
 

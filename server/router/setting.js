@@ -120,7 +120,18 @@ router.get('/system-status', async (req, res) => {
         // Ensure table has rows, otherwise insert defaults (Safety check)
         const check = await pool.query('SELECT count(*) FROM system_status');
         if (parseInt(check.rows[0].count) === 0) {
-            await pool.query("INSERT INTO system_status (service_name, status) VALUES ('Public Website', 'activated'), ('Admin Panel', 'activated')");
+            await pool.query(`
+                INSERT INTO system_status (service_name, status) VALUES 
+                ('Public Website', 'activated'), 
+                ('Admin Panel', 'activated'),
+                ('Lounge', 'activated')
+            `);
+        } else {
+            // Ensure Lounge row (id=3) exists
+            const loungeCheck = await pool.query("SELECT id FROM system_status WHERE id = 3");
+            if (loungeCheck.rows.length === 0) {
+                await pool.query("INSERT INTO system_status (id, service_name, status) VALUES (3, 'Lounge', 'activated')");
+            }
         }
 
         const result = await pool.query('SELECT * FROM system_status');
@@ -153,6 +164,22 @@ router.put('/system-status/admin', async (req, res) => {
 
         const result = await pool.query(
             "UPDATE system_status SET status = $1, updated_at = NOW() WHERE service_name = 'Admin Panel' RETURNING *",
+            [status]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
+router.put('/system-status/lounge', async (req, res) => {
+    try {
+        const { status } = req.body; // 'activated' or 'deactivated'
+
+        const result = await pool.query(
+            "UPDATE system_status SET status = $1, updated_at = NOW() WHERE id = 3 RETURNING *",
             [status]
         );
         res.json(result.rows[0]);
